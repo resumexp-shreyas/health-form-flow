@@ -11,6 +11,8 @@ interface ProposalQuestionProps {
   onAnswer: (answer: boolean) => void;
   onDetailsChange: (details: string) => void;
   customDetails?: React.ReactNode;
+  disabled?: boolean;
+  note?: string | null;
 }
 
 const ProposalQuestion = ({
@@ -23,6 +25,8 @@ const ProposalQuestion = ({
   onAnswer,
   onDetailsChange,
   customDetails,
+  disabled,
+  note,
 }: ProposalQuestionProps) => {
   return (
     <div className="rounded-lg border border-border bg-card p-5 transition-all duration-200">
@@ -40,29 +44,42 @@ const ProposalQuestion = ({
             </p>
           </div>
 
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => onAnswer(true)}
-              className={`rounded-md px-5 py-2 text-sm font-medium transition-all duration-150 ${
-                value === true
-                  ? "bg-primary text-primary-foreground shadow-sm"
-                  : "border border-border bg-card text-muted-foreground hover:bg-secondary"
-              }`}
-            >
-              Yes
-            </button>
-            <button
-              type="button"
-              onClick={() => onAnswer(false)}
-              className={`rounded-md px-5 py-2 text-sm font-medium transition-all duration-150 ${
-                value === false
-                  ? "bg-success text-success-foreground shadow-sm"
-                  : "border border-border bg-card text-muted-foreground hover:bg-secondary"
-              }`}
-            >
-              No
-            </button>
+          <div className="flex items-center gap-3">
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => !disabled && onAnswer(true)}
+                disabled={disabled}
+                className={`rounded-md px-5 py-2 text-sm font-medium transition-all duration-150 ${
+                  disabled ? "opacity-60 cursor-not-allowed " : ""
+                }${
+                  value === true
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "border border-border bg-card text-muted-foreground hover:bg-secondary"
+                }`}
+              >
+                Yes
+              </button>
+              <button
+                type="button"
+                onClick={() => !disabled && onAnswer(false)}
+                disabled={disabled}
+                className={`rounded-md px-5 py-2 text-sm font-medium transition-all duration-150 ${
+                  disabled ? "opacity-60 cursor-not-allowed " : ""
+                }${
+                  value === false
+                    ? "bg-success text-success-foreground shadow-sm"
+                    : "border border-border bg-card text-muted-foreground hover:bg-secondary"
+                }`}
+              >
+                No
+              </button>
+            </div>
+            {note && (
+              <span className="text-xs italic text-muted-foreground">
+                {note}
+              </span>
+            )}
           </div>
 
           {value === true && (
