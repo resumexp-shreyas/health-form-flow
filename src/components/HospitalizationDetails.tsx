@@ -64,10 +64,10 @@ const outcomeOptions = [
   "Other (please specify)",
 ];
 
-const yearsOptions = Array.from({ length: 11 }, (_, i) =>
-  i === 10 ? "10+" : String(i + 1)
+const yearsOptions = Array.from({ length: 12 }, (_, i) =>
+  i === 11 ? "10+" : String(i)
 );
-const monthsOptions = Array.from({ length: 12 }, (_, i) => String(i + 1));
+const monthsOptions = Array.from({ length: 12 }, (_, i) => String(i));
 
 const HospitalizationDetails = ({ data, onChange }: HospitalizationDetailsProps) => {
   const fileInputRefs = useRef<(HTMLInputElement | null)[]>([]);
