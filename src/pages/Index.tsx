@@ -66,17 +66,6 @@ const Index = () => {
     uploadedFiles: [],
   });
 
-  // answered count uses effective values
-  const answered = questions.filter((_, i) => getEffectiveValue(i) !== null).length;
-
-  const updateAnswer = (index: number, value: boolean) => {
-    setAnswers((prev) => {
-      const next = [...prev];
-      next[index] = { ...next[index], value, details: value ? next[index].details : "" };
-      return next;
-    });
-  };
-
   // Auto-answer Q2 based on medical history current status
   const surgeryStatuses = [
     "I have a surgery planned",
@@ -94,6 +83,17 @@ const Index = () => {
   const getEffectiveValue = (index: number) => {
     if (index === 1 && isSurgeryRelated) return true;
     return answers[index].value;
+  };
+
+  // answered count uses effective values
+  const answered = questions.filter((_, i) => getEffectiveValue(i) !== null).length;
+
+  const updateAnswer = (index: number, value: boolean) => {
+    setAnswers((prev) => {
+      const next = [...prev];
+      next[index] = { ...next[index], value, details: value ? next[index].details : "" };
+      return next;
+    });
   };
 
   const updateDetails = (index: number, details: string) => {
