@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useRef } from "react";
 import { Input } from "@/components/ui/input";
+import { Plus, FileText, X } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -17,6 +18,8 @@ export interface HospitalizationData {
   monthsAgo: string;
   outcome: string;
   outcomeOther: string;
+  hasDischargeRecords: boolean | null;
+  uploadedFiles: File[];
 }
 
 interface HospitalizationDetailsProps {
@@ -67,6 +70,8 @@ const yearsOptions = Array.from({ length: 11 }, (_, i) =>
 const monthsOptions = Array.from({ length: 12 }, (_, i) => String(i + 1));
 
 const HospitalizationDetails = ({ data, onChange }: HospitalizationDetailsProps) => {
+  const fileInputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
   const toggleReason = (reason: string) => {
     const next = data.reasons.includes(reason)
       ? data.reasons.filter((r) => r !== reason)
@@ -76,6 +81,22 @@ const HospitalizationDetails = ({ data, onChange }: HospitalizationDetailsProps)
       update.reasonOther = "";
     }
     onChange(update);
+  };
+
+  const handleFileChange = (index: number, file: File | null) => {
+    if (!file) return;
+    const next = [...data.uploadedFiles];
+    next[index] = file;
+    onChange({ ...data, uploadedFiles: next });
+  };
+
+  const addFileSlot = () => {
+    onChange({ ...data, uploadedFiles: [...data.uploadedFiles, undefined as unknown as File] });
+  };
+
+  const removeFile = (index: number) => {
+    const next = data.uploadedFiles.filter((_, i) => i !== index);
+    onChange({ ...data, uploadedFiles: next });
   };
 
   return (
@@ -174,6 +195,75 @@ const HospitalizationDetails = ({ data, onChange }: HospitalizationDetailsProps)
             onChange={(e) => onChange({ ...data, outcomeOther: e.target.value })}
             className="mt-1 border-border bg-muted/50 text-sm placeholder:text-muted-foreground/60"
           />
+        )}
+      </div>
+      {/* Discharge Summary */}
+      <div className="space-y-3">
+        <label className="text-xs font-medium text-muted-foreground">
+          Do you have discharge summary or any past medical records related to this hospitalization?
+        </label>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => onChange({ ...data, hasDischargeRecords: true, uploadedFiles: data.uploadedFiles.length === 0 ? [undefined as unknown as File] : data.uploadedFiles })}
+            className={`rounded-md px-5 py-2 text-sm font-medium transition-all duration-150 ${
+              data.hasDischargeRecords === true
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "border border-border bg-card text-muted-foreground hover:bg-secondary"
+            }`}
+          >
+            Yes
+          </button>
+          <button
+            type="button"
+            onClick={() => onChange({ ...data, hasDischargeRecords: false, uploadedFiles: [] })}
+            className={`rounded-md px-5 py-2 text-sm font-medium transition-all duration-150 ${
+              data.hasDischargeRecords === false
+                ? "bg-success text-success-foreground shadow-sm"
+                : "border border-border bg-card text-muted-foreground hover:bg-secondary"
+            }`}
+          >
+            No
+          </button>
+        </div>
+
+        {data.hasDischargeRecords === true && (
+          <div className="animate-in fade-in slide-in-from-top-2 duration-200 space-y-3">
+            {data.uploadedFiles.map((file, index) => (
+              <div key={index} className="flex items-center gap-2">
+                <label
+                  className="flex flex-1 cursor-pointer items-center gap-2 rounded-md border border-border bg-muted/50 px-3 py-2 text-sm text-muted-foreground hover:bg-secondary transition-colors"
+                >
+                  <FileText className="h-4 w-4 shrink-0" />
+                  <span className="truncate">
+                    {file?.name || "Choose a file..."}
+                  </span>
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                    ref={(el) => { fileInputRefs.current[index] = el; }}
+                    onChange={(e) => handleFileChange(index, e.target.files?.[0] || null)}
+                  />
+                </label>
+                <button
+                  type="button"
+                  onClick={() => removeFile(index)}
+                  className="rounded-md p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={addFileSlot}
+              className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary transition-colors"
+            >
+              <Plus className="h-4 w-4" />
+              Upload more document
+            </button>
+          </div>
         )}
       </div>
     </div>

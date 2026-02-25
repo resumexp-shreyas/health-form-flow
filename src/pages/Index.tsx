@@ -62,6 +62,8 @@ const Index = () => {
     monthsAgo: "",
     outcome: "",
     outcomeOther: "",
+    hasDischargeRecords: null,
+    uploadedFiles: [],
   });
 
   const answered = answers.filter((a) => a.value !== null).length;
