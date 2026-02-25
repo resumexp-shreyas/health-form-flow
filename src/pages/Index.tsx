@@ -66,7 +66,8 @@ const Index = () => {
     uploadedFiles: [],
   });
 
-  const answered = answers.filter((a) => a.value !== null).length;
+  // answered count uses effective values
+  const answered = questions.filter((_, i) => getEffectiveValue(i) !== null).length;
 
   const updateAnswer = (index: number, value: boolean) => {
     setAnswers((prev) => {
@@ -74,6 +75,25 @@ const Index = () => {
       next[index] = { ...next[index], value, details: value ? next[index].details : "" };
       return next;
     });
+  };
+
+  // Auto-answer Q2 based on medical history current status
+  const surgeryStatuses = [
+    "I have a surgery planned",
+    "I'm recovering from surgery",
+  ];
+  const isSurgeryRelated = surgeryStatuses.includes(medicalHistory.currentStatus);
+
+  const autoAnswerNote = isSurgeryRelated
+    ? medicalHistory.currentStatus === "I have a surgery planned"
+      ? "Answered Yes as we noted you have a planned surgery."
+      : "Answered Yes as we noted you are recovering from surgery."
+    : null;
+
+  // Effective value for Q2: force Yes if surgery-related
+  const getEffectiveValue = (index: number) => {
+    if (index === 1 && isSurgeryRelated) return true;
+    return answers[index].value;
   };
 
   const updateDetails = (index: number, details: string) => {
@@ -85,20 +105,20 @@ const Index = () => {
   };
 
   const handleSubmit = () => {
-    const unanswered = answers.some((a) => a.value === null);
+    const unanswered = questions.some((_, i) => getEffectiveValue(i) === null);
     if (unanswered) {
       toast.error("Please answer all questions before submitting.");
       return;
     }
     // Check Q1 medical history structured fields
-    if (answers[0].value === true) {
+    if (getEffectiveValue(0) === true) {
       if (!medicalHistory.condition.trim() || !medicalHistory.yearOfDiagnosis || !medicalHistory.currentStatus) {
         toast.error("Please complete all Medical History sub-questions.");
         return;
       }
     }
     // Check Q2 hospitalization structured fields
-    if (answers[1].value === true) {
+    if (getEffectiveValue(1) === true) {
       if (
         hospitalization.reasons.length === 0 ||
         !hospitalization.yearsAgo ||
@@ -119,7 +139,7 @@ const Index = () => {
     }
     // Check Q3-Q4 details
     const yesWithoutDetails = answers.some(
-      (a, i) => i > 1 && a.value === true && a.details.trim() === ""
+      (a, i) => i > 1 && getEffectiveValue(i) === true && a.details.trim() === ""
     );
     if (yesWithoutDetails) {
       toast.error("Please provide details for all 'Yes' answers.");
@@ -158,10 +178,12 @@ const Index = () => {
               category={q.category}
               question={q.question}
               detailPrompt={q.detailPrompt}
-              value={answers[i].value}
+              value={getEffectiveValue(i)}
               details={answers[i].details}
               onAnswer={(v) => updateAnswer(i, v)}
               onDetailsChange={(d) => updateDetails(i, d)}
+              disabled={i === 1 && isSurgeryRelated}
+              note={i === 1 ? autoAnswerNote : undefined}
               {...(i === 0 && {
                 customDetails: (
                   <MedicalHistoryDetails
