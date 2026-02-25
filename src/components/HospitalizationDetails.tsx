@@ -208,7 +208,7 @@ const HospitalizationDetails = ({ data, onChange }: HospitalizationDetailsProps)
             onClick={() => onChange({ ...data, hasDischargeRecords: true, uploadedFiles: data.uploadedFiles.length === 0 ? [undefined as unknown as File] : data.uploadedFiles })}
             className={`rounded-md px-5 py-2 text-sm font-medium transition-all duration-150 ${
               data.hasDischargeRecords === true
-                ? "bg-primary text-primary-foreground shadow-sm"
+                ? "bg-[hsl(var(--answer-active))] text-[hsl(var(--answer-active-foreground))] shadow-sm"
                 : "border border-border bg-card text-muted-foreground hover:bg-secondary"
             }`}
           >
@@ -219,7 +219,7 @@ const HospitalizationDetails = ({ data, onChange }: HospitalizationDetailsProps)
             onClick={() => onChange({ ...data, hasDischargeRecords: false, uploadedFiles: [] })}
             className={`rounded-md px-5 py-2 text-sm font-medium transition-all duration-150 ${
               data.hasDischargeRecords === false
-                ? "bg-success text-success-foreground shadow-sm"
+                ? "bg-[hsl(var(--answer-active))] text-[hsl(var(--answer-active-foreground))] shadow-sm"
                 : "border border-border bg-card text-muted-foreground hover:bg-secondary"
             }`}
           >
