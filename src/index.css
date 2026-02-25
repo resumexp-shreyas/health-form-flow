@@ -39,8 +39,10 @@
     --success: 142 60% 40%;
     --success-foreground: 0 0% 100%;
 
-    --answer-active: 240 100% 68%;
+    --answer-active: 224 82% 75%;
     --answer-active-foreground: 0 0% 100%;
+
+    --progress-bar: 120 100% 32%;
 
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;

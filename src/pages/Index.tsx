@@ -208,7 +208,7 @@ const Index = () => {
         <div className="mt-8 text-center">
           <button
             onClick={handleSubmit}
-            className="rounded-lg bg-primary px-10 py-3 text-sm font-semibold text-primary-foreground shadow-sm transition-all hover:opacity-90 active:scale-[0.98]"
+            className="rounded-lg bg-[hsl(var(--answer-active))] px-10 py-3 text-sm font-semibold text-[hsl(var(--answer-active-foreground))] shadow-sm transition-all hover:opacity-90 active:scale-[0.98]"
           >
             Submit
           </button>

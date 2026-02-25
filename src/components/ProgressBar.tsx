@@ -16,7 +16,7 @@ const ProgressBar = ({ answered, total }: ProgressBarProps) => {
       </div>
       <div className="h-2 w-full overflow-hidden rounded-full bg-secondary">
         <div
-          className="h-full rounded-full bg-primary transition-all duration-500 ease-out"
+          className="h-full rounded-full bg-[hsl(var(--progress-bar))] transition-all duration-500 ease-out"
           style={{ width: `${pct}%` }}
         />
       </div>
