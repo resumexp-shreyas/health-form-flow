@@ -10,6 +10,7 @@ interface ProposalQuestionProps {
   details: string;
   onAnswer: (answer: boolean) => void;
   onDetailsChange: (details: string) => void;
+  customDetails?: React.ReactNode;
 }
 
 const ProposalQuestion = ({
@@ -21,6 +22,7 @@ const ProposalQuestion = ({
   details,
   onAnswer,
   onDetailsChange,
+  customDetails,
 }: ProposalQuestionProps) => {
   return (
     <div className="rounded-lg border border-border bg-card p-5 transition-all duration-200">
@@ -65,12 +67,16 @@ const ProposalQuestion = ({
 
           {value === true && (
             <div className="animate-in fade-in slide-in-from-top-2 duration-200">
-              <Textarea
-                placeholder={detailPrompt}
-                value={details}
-                onChange={(e) => onDetailsChange(e.target.value)}
-                className="mt-1 min-h-[90px] resize-none border-border bg-muted/50 text-sm placeholder:text-muted-foreground/60"
-              />
+              {customDetails ? (
+                customDetails
+              ) : (
+                <Textarea
+                  placeholder={detailPrompt}
+                  value={details}
+                  onChange={(e) => onDetailsChange(e.target.value)}
+                  className="mt-1 min-h-[90px] resize-none border-border bg-muted/50 text-sm placeholder:text-muted-foreground/60"
+                />
+              )}
             </div>
           )}
         </div>

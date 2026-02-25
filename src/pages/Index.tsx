@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import ProposalQuestion from "@/components/ProposalQuestion";
+import MedicalHistoryDetails from "@/components/MedicalHistoryDetails";
 import ProgressBar from "@/components/ProgressBar";
 import { ShieldCheck } from "lucide-react";
 
@@ -38,10 +39,21 @@ interface Answer {
   details: string;
 }
 
+interface MedicalHistoryData {
+  condition: string;
+  yearOfDiagnosis: string;
+  currentStatus: string;
+}
+
 const Index = () => {
   const [answers, setAnswers] = useState<Answer[]>(
     questions.map(() => ({ value: null, details: "" }))
   );
+  const [medicalHistory, setMedicalHistory] = useState<MedicalHistoryData>({
+    condition: "",
+    yearOfDiagnosis: "",
+    currentStatus: "",
+  });
 
   const answered = answers.filter((a) => a.value !== null).length;
 
@@ -67,8 +79,16 @@ const Index = () => {
       toast.error("Please answer all questions before submitting.");
       return;
     }
+    // Check Q1 medical history structured fields
+    if (answers[0].value === true) {
+      if (!medicalHistory.condition.trim() || !medicalHistory.yearOfDiagnosis || !medicalHistory.currentStatus) {
+        toast.error("Please complete all Medical History sub-questions.");
+        return;
+      }
+    }
+    // Check Q2-Q4 details
     const yesWithoutDetails = answers.some(
-      (a) => a.value === true && a.details.trim() === ""
+      (a, i) => i > 0 && a.value === true && a.details.trim() === ""
     );
     if (yesWithoutDetails) {
       toast.error("Please provide details for all 'Yes' answers.");
@@ -111,6 +131,14 @@ const Index = () => {
               details={answers[i].details}
               onAnswer={(v) => updateAnswer(i, v)}
               onDetailsChange={(d) => updateDetails(i, d)}
+              {...(i === 0 && {
+                customDetails: (
+                  <MedicalHistoryDetails
+                    data={medicalHistory}
+                    onChange={setMedicalHistory}
+                  />
+                ),
+              })}
             />
           ))}
         </div>
