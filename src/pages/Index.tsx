@@ -2,6 +2,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import ProposalQuestion from "@/components/ProposalQuestion";
 import MedicalHistoryDetails from "@/components/MedicalHistoryDetails";
+import HospitalizationDetails, { type HospitalizationData } from "@/components/HospitalizationDetails";
 import ProgressBar from "@/components/ProgressBar";
 import { ShieldCheck } from "lucide-react";
 
@@ -54,6 +55,14 @@ const Index = () => {
     yearOfDiagnosis: "",
     currentStatus: "",
   });
+  const [hospitalization, setHospitalization] = useState<HospitalizationData>({
+    reasons: [],
+    reasonOther: "",
+    yearsAgo: "",
+    monthsAgo: "",
+    outcome: "",
+    outcomeOther: "",
+  });
 
   const answered = answers.filter((a) => a.value !== null).length;
 
@@ -86,9 +95,29 @@ const Index = () => {
         return;
       }
     }
-    // Check Q2-Q4 details
+    // Check Q2 hospitalization structured fields
+    if (answers[1].value === true) {
+      if (
+        hospitalization.reasons.length === 0 ||
+        !hospitalization.yearsAgo ||
+        !hospitalization.monthsAgo ||
+        !hospitalization.outcome
+      ) {
+        toast.error("Please complete all Hospitalization & Surgery sub-questions.");
+        return;
+      }
+      if (hospitalization.reasons.includes("Other (please specify)") && !hospitalization.reasonOther.trim()) {
+        toast.error("Please specify the other reason for hospitalization.");
+        return;
+      }
+      if (hospitalization.outcome === "Other (please specify)" && !hospitalization.outcomeOther.trim()) {
+        toast.error("Please specify the other outcome.");
+        return;
+      }
+    }
+    // Check Q3-Q4 details
     const yesWithoutDetails = answers.some(
-      (a, i) => i > 0 && a.value === true && a.details.trim() === ""
+      (a, i) => i > 1 && a.value === true && a.details.trim() === ""
     );
     if (yesWithoutDetails) {
       toast.error("Please provide details for all 'Yes' answers.");
@@ -136,6 +165,14 @@ const Index = () => {
                   <MedicalHistoryDetails
                     data={medicalHistory}
                     onChange={setMedicalHistory}
+                  />
+                ),
+              })}
+              {...(i === 1 && {
+                customDetails: (
+                  <HospitalizationDetails
+                    data={hospitalization}
+                    onChange={setHospitalization}
                   />
                 ),
               })}
