@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import ProposalQuestion from "@/components/ProposalQuestion";
 import MedicalHistoryDetails from "@/components/MedicalHistoryDetails";
 import HospitalizationDetails, { type HospitalizationData } from "@/components/HospitalizationDetails";
+import PersonalInfoFields from "@/components/PersonalInfoFields";
 import ProgressBar from "@/components/ProgressBar";
 import { ShieldCheck } from "lucide-react";
 
@@ -47,6 +48,8 @@ interface MedicalHistoryData {
 }
 
 const Index = () => {
+  const [age, setAge] = useState("");
+  const [gender, setGender] = useState("");
   const [answers, setAnswers] = useState<Answer[]>(
     questions.map(() => ({ value: null, details: "" }))
   );
@@ -105,6 +108,10 @@ const Index = () => {
   };
 
   const handleSubmit = () => {
+    if (!age.trim() || !gender) {
+      toast.error("Please provide your age and gender.");
+      return;
+    }
     const unanswered = questions.some((_, i) => getEffectiveValue(i) === null);
     if (unanswered) {
       toast.error("Please answer all questions before submitting.");
@@ -168,6 +175,14 @@ const Index = () => {
         <div className="mb-6">
           <ProgressBar answered={answered} total={questions.length} />
         </div>
+
+        {/* Personal Info */}
+        <PersonalInfoFields
+          age={age}
+          gender={gender}
+          onAgeChange={setAge}
+          onGenderChange={setGender}
+        />
 
         {/* Questions */}
         <div className="space-y-4">
