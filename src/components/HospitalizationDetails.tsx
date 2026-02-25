@@ -152,7 +152,7 @@ const HospitalizationDetails = ({ data, onChange }: HospitalizationDetailsProps)
               ))}
             </SelectContent>
           </Select>
-          <span className="text-sm text-muted-foreground">Years,</span>
+          <span className="text-sm text-muted-foreground">Years and </span>
           <Select
             value={data.monthsAgo}
             onValueChange={(v) => onChange({ ...data, monthsAgo: v })}
@@ -166,7 +166,7 @@ const HospitalizationDetails = ({ data, onChange }: HospitalizationDetailsProps)
               ))}
             </SelectContent>
           </Select>
-          <span className="text-sm text-muted-foreground">Months ago</span>
+          <span className="text-sm text-muted-foreground"> Months ago</span>
         </div>
       </div>
 
