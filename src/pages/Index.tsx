@@ -230,7 +230,7 @@ function deriveUwObject(response) {
 
     if (uwobject.underwriting_decision === "Ask more questions") {
       navigate(`/reflex-questions`, {
-        state: { questions: uwobject.more_questions_detail },
+        state: { questions: uwobject.more_questions_details },
       });
     }
 
