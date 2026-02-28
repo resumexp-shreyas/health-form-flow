@@ -495,6 +495,7 @@ function deriveUwObject(response) {
                   />
                 ),
               })}
+              {...(i === 1 && { hideDetails: true })}
             />
           ))}
         </div>
