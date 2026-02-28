@@ -508,9 +508,25 @@ return (
         {discrepancies.length > 0 && (
           <div className="mb-4 rounded-md bg-destructive/10 p-4 text-sm text-destructive">
             <p className="font-medium">Discrepancies detected:</p>
-            <ul className="list-disc pl-5">
+            <ul className="space-y-2 mt-2">
               {discrepancies.map((d, i) => (
-                <li key={i}>{d}</li>
+                <li key={i} className="flex items-start justify-between gap-2 rounded border border-destructive/20 bg-background p-3">
+                  <span className="flex-1">{d}</span>
+                  <div className="flex shrink-0 gap-1">
+                    <button
+                      onClick={() => setDiscrepancies((prev) => prev.filter((_, idx) => idx !== i))}
+                      className="rounded px-2 py-1 text-xs font-medium bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors"
+                    >
+                      Close
+                    </button>
+                    <button
+                      onClick={() => setDiscrepancies((prev) => prev.filter((_, idx) => idx !== i))}
+                      className="rounded px-2 py-1 text-xs font-medium bg-muted text-muted-foreground hover:bg-muted/80 transition-colors"
+                    >
+                      Ignore
+                    </button>
+                  </div>
+                </li>
               ))}
             </ul>
           </div>
@@ -521,7 +537,8 @@ return (
       <div className="mt-8 text-center">
         <button
           onClick={handleSubmit}
-          className="rounded-lg bg-[hsl(var(--answer-active))] px-10 py-3 text-sm font-semibold text-[hsl(var(--answer-active-foreground))] shadow-sm transition-all hover:opacity-90 active:scale-[0.98]"
+          disabled={discrepancies.length > 0}
+          className="rounded-lg bg-[hsl(var(--answer-active))] px-10 py-3 text-sm font-semibold text-[hsl(var(--answer-active-foreground))] shadow-sm transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Submit
         </button>
