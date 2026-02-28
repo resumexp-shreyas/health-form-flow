@@ -33,33 +33,37 @@ const DisabilityDetails = ({ data, onChange }: DisabilityDetailsProps) => {
         <label className="text-xs font-medium text-muted-foreground">
           Percentage of disability
         </label>
-        <div className="flex items-center gap-3">
-          <Select
-            value={isUnknown ? "" : data.percentage}
-            onValueChange={(v) => onChange({ ...data, percentage: v })}
-            disabled={isUnknown}
-          >
-            <SelectTrigger className="w-32 border-border bg-muted/50 text-sm disabled:opacity-50">
-              <SelectValue placeholder="Select %" />
-            </SelectTrigger>
-            <SelectContent>
-              {percentageOptions.map((p) => (
-                <SelectItem key={p} value={p}>
-                  {p}%
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <label className="flex items-center gap-2 cursor-pointer text-sm text-muted-foreground select-none">
+        <div className="flex items-center">
+          <div className="w-1/2">
+            <Select
+              value={isUnknown ? "" : data.percentage}
+              onValueChange={(v) => onChange({ ...data, percentage: v })}
+              disabled={isUnknown}
+            >
+              <SelectTrigger className="w-32 border-border bg-muted/50 text-sm disabled:opacity-50">
+                <SelectValue placeholder="Select %" />
+              </SelectTrigger>
+              <SelectContent>
+                {percentageOptions.map((p) => (
+                  <SelectItem key={p} value={p}>
+                    {p}%
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <label className="w-1/2 flex items-start gap-2 cursor-pointer select-none">
             <input
               type="checkbox"
               checked={isUnknown}
               onChange={(e) =>
                 onChange({ ...data, percentage: e.target.checked ? UNKNOWN_VALUE : "" })
               }
-              className="h-4 w-4 rounded border-border accent-primary"
+              className="h-4 w-4 mt-0.5 shrink-0 rounded border-border accent-primary"
             />
-            I do not know/ do not remember disability percentage
+            <span className="text-xs text-muted-foreground leading-tight">
+              I do not know/ do not remember disability percentage
+            </span>
           </label>
         </div>
       </div>
@@ -73,22 +77,20 @@ const DisabilityDetails = ({ data, onChange }: DisabilityDetailsProps) => {
           <button
             type="button"
             onClick={() => onChange({ ...data, hasCertificate: true })}
-            className={`rounded-md px-5 py-2 text-sm font-medium transition-all duration-150 ${
-              data.hasCertificate === true
-                ? "bg-[hsl(var(--answer-active))] text-[hsl(var(--answer-active-foreground))] shadow-sm"
-                : "border border-border bg-card text-muted-foreground hover:bg-secondary"
-            }`}
+            className={`rounded-md px-5 py-2 text-sm font-medium transition-all duration-150 ${data.hasCertificate === true
+              ? "bg-[hsl(var(--answer-active))] text-[hsl(var(--answer-active-foreground))] shadow-sm"
+              : "border border-border bg-card text-muted-foreground hover:bg-secondary"
+              }`}
           >
             Yes
           </button>
           <button
             type="button"
             onClick={() => onChange({ ...data, hasCertificate: false, certificateFile: null })}
-            className={`rounded-md px-5 py-2 text-sm font-medium transition-all duration-150 ${
-              data.hasCertificate === false
-                ? "bg-[hsl(var(--answer-active))] text-[hsl(var(--answer-active-foreground))] shadow-sm"
-                : "border border-border bg-card text-muted-foreground hover:bg-secondary"
-            }`}
+            className={`rounded-md px-5 py-2 text-sm font-medium transition-all duration-150 ${data.hasCertificate === false
+              ? "bg-[hsl(var(--answer-active))] text-[hsl(var(--answer-active-foreground))] shadow-sm"
+              : "border border-border bg-card text-muted-foreground hover:bg-secondary"
+              }`}
           >
             No
           </button>

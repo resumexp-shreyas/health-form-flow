@@ -104,6 +104,8 @@ const Index = () => {
     certificateFile: null,
   });
 
+  const [discrepancies, setDiscrepancies] = useState<string[]>([]);
+
   // Auto-answer Q2 based on medical history current status
   const surgeryStatuses = [
     "I have a surgery planned",
@@ -165,72 +167,76 @@ const Index = () => {
    * deriveUwObject(response)
    */
   function deriveUwObject(response) {
-  if (response && typeof response === 'object') return response;
-  if (typeof response !== 'string') {
-    throw new Error('Unsupported response type');
-  }
-  let s = response.trim();
-  const jsonPrefixMatch = s.match(/^\\s*json\\s*[:=]?\\s*/i);
-  if (jsonPrefixMatch) {
-    s = s.slice(jsonPrefixMatch[0].length).trim();
-  }
-  const firstBraceIndex = Math.min(
-    ...['{', '[']
-      .map(ch => s.indexOf(ch))
-      .filter(idx => idx !== -1)
-  );
-  if (firstBraceIndex > 0) {
-    s = s.slice(firstBraceIndex);
-  }
-  try {
-    return JSON.parse(s);
-  } catch (e) {
-    const startChar = s[0];
-    const endChar = startChar === '{' ? '}' : startChar === '[' ? ']' : null;
-    if (!endChar) throw new Error('No JSON object or array found in response');
-    let depth = 0;
-    let inString: string | false = false;
-    let escape = false;
-    let endIndex = -1;
-    for (let i = 0; i < s.length; i++) {
-      const ch = s[i];
-      if (escape) { escape = false; continue; }
-      if (ch === '\\\\') { escape = true; continue; }
-      if (ch === '"' || ch === "'") {
-        if (!inString) { inString = ch; } else if (inString === ch) { inString = false; }
-        continue;
-      }
-      if (inString) continue;
-      if (ch === startChar) depth++;
-      else if (ch === endChar) {
-        depth--;
-        if (depth === 0) { endIndex = i; break; }
-      }
+    if (response && typeof response === 'object') return response;
+    if (typeof response !== 'string') {
+      throw new Error('Unsupported response type');
     }
-    if (endIndex === -1) throw new Error('Could not find balanced JSON substring');
-    const candidate = s.slice(0, endIndex + 1);
-    try { return JSON.parse(candidate); }
-    catch (err2) { throw new Error('Failed to parse JSON: ' + err2.message); }
+    let s = response.trim();
+    const jsonPrefixMatch = s.match(/^\\s*json\\s*[:=]?\\s*/i);
+    if (jsonPrefixMatch) {
+      s = s.slice(jsonPrefixMatch[0].length).trim();
+    }
+    const firstBraceIndex = Math.min(
+      ...['{', '[']
+        .map(ch => s.indexOf(ch))
+        .filter(idx => idx !== -1)
+    );
+    if (firstBraceIndex > 0) {
+      s = s.slice(firstBraceIndex);
+    }
+    try {
+      return JSON.parse(s);
+    } catch (e) {
+      const startChar = s[0];
+      const endChar = startChar === '{' ? '}' : startChar === '[' ? ']' : null;
+      if (!endChar) throw new Error('No JSON object or array found in response');
+      let depth = 0;
+      let inString: string | false = false;
+      let escape = false;
+      let endIndex = -1;
+      for (let i = 0; i < s.length; i++) {
+        const ch = s[i];
+        if (escape) { escape = false; continue; }
+        if (ch === '\\\\') { escape = true; continue; }
+        if (ch === '"' || ch === "'") {
+          if (!inString) { inString = ch; } else if (inString === ch) { inString = false; }
+          continue;
+        }
+        if (inString) continue;
+        if (ch === startChar) depth++;
+        else if (ch === endChar) {
+          depth--;
+          if (depth === 0) { endIndex = i; break; }
+        }
+      }
+      if (endIndex === -1) throw new Error('Could not find balanced JSON substring');
+      const candidate = s.slice(0, endIndex + 1);
+      try { return JSON.parse(candidate); }
+      catch (err2) { throw new Error('Failed to parse JSON: ' + err2.message); }
+    }
   }
-}
 
   const getClarity = {
     url: getHost() + `proposal/getclarity/`,
     method: "post",
     body: {},
     callBack: (result) => {
+
       console.log("Raw response:", result.data.response);
       const uwobject = result.data.response;
       console.log("uwobject:", uwobject);
-      if (uwobject.underwriting_decision === "Ask more questions") {
-        navigate(`/reflex-questions`, {
-          state: { questions: uwobject.more_questions_details },
-        });
+
+      if (uwobject.discrepancies_detected && uwobject.discrepancies_detected.length > 0) {
+        console.warn("Discrepancies detected:", uwobject.discrepancies_detected);
+        toast.error("We detected some discrepancies in your answers. Please review your responses and submit again.");
+
       } else if (uwobject.underwriting_decision === "Accept") {
         toast.success("Congratulations! Your proposal has been accepted.");
-      } else if (uwobject.underwriting_decision === "Reject") {
-        toast.error("We regret to inform you that your proposal has been rejected.");
       }
+
+
+
+
     },
     errorCallBack: (error) => {
       console.error("Error submitting proposal:", error);
@@ -486,6 +492,19 @@ const Index = () => {
               })}
             />
           ))}
+        </div>
+
+        <div>
+          {discrepancies.length > 0 && (
+            <div className="mb-4 rounded-md bg-destructive/10 p-4 text-sm text-destructive">
+              <p className="font-medium">Discrepancies detected:</p>
+              <ul className="list-disc pl-5">
+                {discrepancies.map((d, i) => (
+                  <li key={i}>{d}</li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
 
         {/* Submit */}
