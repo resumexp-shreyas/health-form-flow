@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, forwardRef, useImperativeHandle } from "react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,10 @@ interface MedicalHistoryData {
   condition: string;
   yearOfDiagnosis: string;
   currentStatus: string;
+}
+
+export interface MedicalHistoryDetailsRef {
+  flushPendingInput: () => void;
 }
 
 interface MedicalHistoryDetailsProps {
@@ -52,7 +56,7 @@ function fuzzyMatch(text: string, query: string): boolean {
   return qi === q.length;
 }
 
-const MedicalHistoryDetails = ({ data, onChange }: MedicalHistoryDetailsProps) => {
+const MedicalHistoryDetails = forwardRef<MedicalHistoryDetailsRef, MedicalHistoryDetailsProps>(({ data, onChange }, ref) => {
   const [inputValue, setInputValue] = useState("");
   const [chips, setChips] = useState<string[]>(() =>
     data.condition ? data.condition.split("||").filter(Boolean) : []
@@ -61,7 +65,6 @@ const MedicalHistoryDetails = ({ data, onChange }: MedicalHistoryDetailsProps) =
   const [highlightIndex, setHighlightIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-
   const suggestions =
     inputValue.trim().length >= 3
       ? medicalConditions
@@ -94,6 +97,29 @@ const MedicalHistoryDetails = ({ data, onChange }: MedicalHistoryDetailsProps) =
     [chips, syncChips]
   );
 
+  const addChipsFromText = useCallback(
+    (text: string) => {
+      const segments = text.split(",").map(s => s.trim()).filter(Boolean);
+      const unique = segments.filter(s => !chips.includes(s));
+      if (unique.length === 0) return;
+      // Deduplicate within segments themselves
+      const deduped = [...new Set(unique)];
+      syncChips([...chips, ...deduped]);
+      setInputValue("");
+      setShowSuggestions(false);
+      setHighlightIndex(-1);
+    },
+    [chips, syncChips]
+  );
+
+  useImperativeHandle(ref, () => ({
+    flushPendingInput: () => {
+      if (inputValue.trim()) {
+        addChipsFromText(inputValue);
+      }
+    },
+  }), [inputValue, addChipsFromText]);
+
   const removeChip = useCallback(
     (index: number) => {
       syncChips(chips.filter((_, i) => i !== index));
@@ -102,12 +128,12 @@ const MedicalHistoryDetails = ({ data, onChange }: MedicalHistoryDetailsProps) =
   );
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
+    if (e.key === "Enter" || e.key === "Tab") {
       e.preventDefault();
       if (highlightIndex >= 0 && suggestions[highlightIndex]) {
         addChip(suggestions[highlightIndex]);
       } else if (inputValue.trim()) {
-        addChip(inputValue);
+        addChipsFromText(inputValue);
       }
     } else if (e.key === "ArrowDown") {
       e.preventDefault();
@@ -168,13 +194,19 @@ const MedicalHistoryDetails = ({ data, onChange }: MedicalHistoryDetailsProps) =
             ref={inputRef}
             placeholder="Type a condition and press Enter or Add…"
             value={inputValue}
+            onFocus={() => setShowSuggestions(true)}
+            onKeyDown={handleKeyDown}
             onChange={(e) => {
-              setInputValue(e.target.value);
+              const val = e.target.value;
+              // If user types a comma, immediately convert preceding text to chip(s)
+              if (val.endsWith(",")) {
+                addChipsFromText(val);
+                return;
+              }
+              setInputValue(val);
               setShowSuggestions(true);
               setHighlightIndex(-1);
             }}
-            onFocus={() => setShowSuggestions(true)}
-            onKeyDown={handleKeyDown}
             className="border-border bg-muted/50 text-sm placeholder:text-muted-foreground/60 flex-1"
           />
           <Button
@@ -260,6 +292,8 @@ const MedicalHistoryDetails = ({ data, onChange }: MedicalHistoryDetailsProps) =
       </div>
     </div>
   );
-};
+});
+
+MedicalHistoryDetails.displayName = "MedicalHistoryDetails";
 
 export default MedicalHistoryDetails;
