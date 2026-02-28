@@ -9,7 +9,7 @@ import { ShieldCheck } from "lucide-react";
 import { fireAjax, getHost } from "../assets/Karma";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-const navigate = useNavigate();
+
 
 const questions = [
   {
@@ -52,6 +52,7 @@ interface MedicalHistoryData {
 }
 
 const Index = () => {
+  const navigate = useNavigate();
   const [age, setAge] = useState("");
   const [gender, setGender] = useState("");
   const [answers, setAnswers] = useState<Answer[]>(
