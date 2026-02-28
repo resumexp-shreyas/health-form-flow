@@ -161,7 +161,7 @@ function deriveUwObject(response) {
     if (!endChar) throw new Error('No JSON object or array found in response');
 
     let depth = 0;
-    let inString = false;
+    let inString: string | false = false;
     let escape = false;
     let endIndex = -1;
 
@@ -229,7 +229,9 @@ function deriveUwObject(response) {
     console.log("uwobject:", typeof(uwobject), uwobject);
 
     if (uwobject.underwriting_decision === "Ask more questions") {
-      navigate(`/reflex-questions`);
+      navigate(`/reflex-questions`, {
+        state: { questions: uwobject.more_questions_detail },
+      });
     }
 
   },
