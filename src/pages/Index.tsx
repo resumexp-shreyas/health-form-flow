@@ -231,7 +231,7 @@ const Index = () => {
 
       if (hasDiscrepancies) {
         console.warn("Discrepancies detected:", uwobject.discrepancies_detected);
-        setDiscrepancies(uwobject.discrepancies_detected.map((d: any) => d.detected_issue || d));
+        setDiscrepancies(uwobject.discrepancies_detected.map((d: any) => d.clarification_question || d));
         toast.error("We detected some discrepancies in your answers. Please review your responses and submit again.");
       }
 
