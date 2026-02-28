@@ -19,33 +19,49 @@ interface DisabilityDetailsProps {
   onChange: (data: DisabilityData) => void;
 }
 
-const percentageOptions = [...Array.from({ length: 101 }, (_, i) => String(i)), "I do not know/ do not remember"];
+const percentageOptions = Array.from({ length: 101 }, (_, i) => String(i));
+const UNKNOWN_VALUE = "I do not know/ do not remember";
 
 const DisabilityDetails = ({ data, onChange }: DisabilityDetailsProps) => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const isUnknown = data.percentage === UNKNOWN_VALUE;
 
   return (
     <div className="space-y-4">
       {/* Percentage of disability */}
-      <div className="space-y-1.5">
+      <div className="space-y-2">
         <label className="text-xs font-medium text-muted-foreground">
           Percentage of disability
         </label>
-        <Select
-          value={data.percentage}
-          onValueChange={(v) => onChange({ ...data, percentage: v })}
-        >
-          <SelectTrigger className="w-32 border-border bg-muted/50 text-sm">
-            <SelectValue placeholder="Select %" />
-          </SelectTrigger>
-          <SelectContent>
-            {percentageOptions.map((p) => (
-              <SelectItem key={p} value={p}>
-                {p}%
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-3">
+          <Select
+            value={isUnknown ? "" : data.percentage}
+            onValueChange={(v) => onChange({ ...data, percentage: v })}
+            disabled={isUnknown}
+          >
+            <SelectTrigger className="w-32 border-border bg-muted/50 text-sm disabled:opacity-50">
+              <SelectValue placeholder="Select %" />
+            </SelectTrigger>
+            <SelectContent>
+              {percentageOptions.map((p) => (
+                <SelectItem key={p} value={p}>
+                  {p}%
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <label className="flex items-center gap-2 cursor-pointer text-sm text-muted-foreground select-none">
+            <input
+              type="checkbox"
+              checked={isUnknown}
+              onChange={(e) =>
+                onChange({ ...data, percentage: e.target.checked ? UNKNOWN_VALUE : "" })
+              }
+              className="h-4 w-4 rounded border-border accent-primary"
+            />
+            I do not know/ do not remember disability percentage
+          </label>
+        </div>
       </div>
 
       {/* Disability certificate */}
