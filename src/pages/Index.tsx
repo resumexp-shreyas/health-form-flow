@@ -6,6 +6,9 @@ import HospitalizationDetails, { type HospitalizationData } from "@/components/H
 import PersonalInfoFields from "@/components/PersonalInfoFields";
 import ProgressBar from "@/components/ProgressBar";
 import { ShieldCheck } from "lucide-react";
+import { fireAjax, getHost } from "../assets/Karma";
+import axios from "axios";
+
 
 const questions = [
   {
@@ -107,6 +110,32 @@ const Index = () => {
     });
   };
 
+
+
+
+  const postProposal = {
+    url: getHost() + `proposal/submit/`,
+    method: "post",
+    body: {},
+
+
+    onSuccess: (response: any) => {
+      toast.success("Proposal submitted successfully!");
+      console.log("Server Response:", response);
+    },
+    onError: (error: any) => {
+      toast.error("Failed to submit proposal. Please try again.");
+      console.error("Submission Error:", error);
+    },
+
+    callBack: (result) => {
+      console.log("Callback Result:", result);
+    },
+    pure: false,
+
+
+  };
+
   const handleSubmit = () => {
     if (!age.trim() || !gender) {
       toast.error("Please provide your age and gender.");
@@ -153,6 +182,36 @@ const Index = () => {
       return;
     }
     toast.success("Proposal submitted successfully!");
+
+    let medicalHistoryUsable = {
+      "Medical condition": medicalHistory.condition,
+      "Year Of diagnosis": medicalHistory.yearOfDiagnosis,
+      "Current Status": medicalHistory.currentStatus
+    };
+
+    let hospitalizationUsable = {
+      "Reason(s) for hospitalization/surgery": hospitalization.reasons.join(", ") + (hospitalization.reasons.includes("Other (please specify)") ? ` (${hospitalization.reasonOther})` : ""),
+      "Time since hospitalization/surgery": `${hospitalization.yearsAgo} year(s) and ${hospitalization.monthsAgo} month(s) ago`,
+      "Outcome": hospitalization.outcome + (hospitalization.outcome === "Other (please specify)" ? ` (${hospitalization.outcomeOther})` : ""),
+      "Has discharge records": hospitalization.hasDischargeRecords === true ? "Yes" : hospitalization.hasDischargeRecords === false ? "No" : "N/A",
+      "Past medical records uploaded": hospitalization.uploadedFiles.length > 0 ? "Yes" : "No"
+    };
+
+    let proposal_object = {
+      age, gender,
+      answers: answers.map((a, i) => ({
+        question: questions[i].question,
+        answer: a.value === true ? "Yes" : "No",
+        ...(a.value === true && (questions[i].category === "Investigations & Tests" || questions[i].category === "Chronic or Severe Conditions") ? { details: a.details } : {}),
+        ...(a.value === true && (questions[i].category === "Medical History" ? { details: medicalHistoryUsable } : {})),
+        ...(a.value === true && (questions[i].category === "Hospitalization & Surgery" ? { details: hospitalizationUsable } : {}))
+      }))
+    };
+
+
+    console.log("Prepared Proposal Object:", proposal_object);
+
+    fireAjax({ ...postProposal, body: proposal_object });
   };
 
   return (
