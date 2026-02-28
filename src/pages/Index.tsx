@@ -298,19 +298,22 @@ function deriveUwObject(response) {
       toast.error("Please provide your age and gender.");
       return;
     }
-    const unanswered = questions.some((_, i) => getEffectiveValue(i) === null);
-    if (unanswered) {
-      toast.error("Please answer all questions before submitting.");
-      return;
-    }
-    // Check Q1 medical history structured fields
+    // Collect which parent questions have issues (unanswered main or incomplete sub-questions)
+    const incompleteParentIndices = new Set<number>();
+
+    // Check unanswered main questions
+    questions.forEach((_, i) => {
+      if (getEffectiveValue(i) === null) incompleteParentIndices.add(i);
+    });
+
+    // Check Q1 medical history sub-questions
     if (getEffectiveValue(0) === true) {
       if (!medicalHistory.condition.trim() || !medicalHistory.yearOfDiagnosis || !medicalHistory.currentStatus) {
-        toast.error("Please complete all Medical History sub-questions.");
-        return;
+        incompleteParentIndices.add(0);
       }
     }
-    // Check Q2 hospitalization structured fields
+
+    // Check Q2 hospitalization sub-questions
     if (getEffectiveValue(1) === true) {
       if (
         hospitalization.reasons.length === 0 ||
@@ -318,24 +321,30 @@ function deriveUwObject(response) {
         !hospitalization.monthsAgo ||
         !hospitalization.outcome
       ) {
-        toast.error("Please complete all Hospitalization & Surgery sub-questions.");
-        return;
+        incompleteParentIndices.add(1);
       }
       if (hospitalization.reasons.includes("Other (please specify)") && !hospitalization.reasonOther.trim()) {
-        toast.error("Please specify the other reason for hospitalization.");
-        return;
+        incompleteParentIndices.add(1);
       }
       if (hospitalization.outcome === "Other (please specify)" && !hospitalization.outcomeOther.trim()) {
-        toast.error("Please specify the other outcome.");
-        return;
+        incompleteParentIndices.add(1);
       }
     }
+
     // Check Q3-Q4 details
-    const yesWithoutDetails = answers.some(
-      (a, i) => i > 1 && getEffectiveValue(i) === true && a.details.trim() === ""
-    );
-    if (yesWithoutDetails) {
-      toast.error("Please provide details for all 'Yes' answers.");
+    answers.forEach((a, i) => {
+      if (i > 1 && getEffectiveValue(i) === true && a.details.trim() === "") {
+        incompleteParentIndices.add(i);
+      }
+    });
+
+    if (incompleteParentIndices.size > 1) {
+      toast.error("Please answer all questions before submitting.");
+      return;
+    }
+    if (incompleteParentIndices.size === 1) {
+      const idx = Array.from(incompleteParentIndices)[0];
+      toast.error(`Please answer Question ${idx + 1}: ${questions[idx].question}`);
       return;
     }
     toast.success("Proposal submitted successfully!");
