@@ -105,6 +105,7 @@ const Index = () => {
   });
 
   const [discrepancies, setDiscrepancies] = useState<string[]>([]);
+  const [gotClarity, setGotClarity] = useState<boolean>(false);
 
   // Auto-answer Q2 based on medical history current status
   const surgeryStatuses = [
@@ -234,291 +235,290 @@ const Index = () => {
         toast.success("Congratulations! Your proposal has been accepted.");
       }
 
-
-
-
+      setGotClarity(true);
     },
     errorCallBack: (error) => {
       console.error("Error submitting proposal:", error);
       toast.error("An error occurred while submitting your proposal. Please try again later.");
     }
   };
+};
 
-  const postProposal = {
-    url: getHost() + `proposal/submit/`,
-    method: "post",
-    body: {},
-    callBack: (result) => {
-      console.log("Raw response:", result.data.response);
-      console.log("underwriting_decision:", result.data.response.underwriting_decision);
-      const uwobject = result.data.response;
-      console.log("uwobject:", uwobject);
-      if (uwobject.underwriting_decision === "Ask more questions") {
-        navigate(`/reflex-questions`, {
-          state: { questions: uwobject.more_questions_details },
-        });
-      } else if (uwobject.underwriting_decision === "Accept") {
-        toast.success("Congratulations! Your proposal has been accepted.");
-      } else if (uwobject.underwriting_decision === "Reject") {
-        toast.error("We regret to inform you that your proposal has been rejected.");
-      }
-    },
-    errorCallBack: (error) => {
-      console.error("Error submitting proposal:", error);
-      toast.error("An error occurred while submitting your proposal. Please try again later.");
+const postProposal = {
+  url: getHost() + `proposal/submit/`,
+  method: "post",
+  body: {},
+  callBack: (result) => {
+    console.log("Raw response:", result.data.response);
+    console.log("underwriting_decision:", result.data.response.underwriting_decision);
+    const uwobject = result.data.response;
+    console.log("uwobject:", uwobject);
+    if (uwobject.underwriting_decision === "Ask more questions") {
+      navigate(`/reflex-questions`, {
+        state: { questions: uwobject.more_questions_details },
+      });
+    } else if (uwobject.underwriting_decision === "Accept") {
+      toast.success("Congratulations! Your proposal has been accepted.");
+    } else if (uwobject.underwriting_decision === "Reject") {
+      toast.error("We regret to inform you that your proposal has been rejected.");
     }
+  },
+  errorCallBack: (error) => {
+    console.error("Error submitting proposal:", error);
+    toast.error("An error occurred while submitting your proposal. Please try again later.");
+  }
+};
+
+const handleSubmit = () => {
+  medicalHistoryRef.current?.flushPendingInput();
+
+  if (!age.trim() || !gender) {
+    toast.error("Please provide your age and gender.");
+    return;
+  }
+
+  const incompleteParentIndices = new Map<number, { label: string; questionText: string }>();
+
+  // Check lifestyle questions
+  lifestyleQuestions.forEach((q, i) => {
+    if (lifestyleAnswers[i].value === null) {
+      incompleteParentIndices.set(i, { label: `Question ${i + 1}`, questionText: q.question });
+    }
+  });
+
+  // Tobacco sub-question
+  if (lifestyleAnswers[0].value === true && tobaccoForms.length === 0) {
+    incompleteParentIndices.set(0, { label: "Question 1", questionText: lifestyleQuestions[0].question });
+  }
+
+  // Check unanswered medical main questions
+  const offset = lifestyleQuestions.length;
+  questions.forEach((q, i) => {
+    if (getEffectiveValue(i) === null) {
+      incompleteParentIndices.set(offset + i, { label: `Question ${offset + i + 1}`, questionText: q.question });
+    }
+  });
+
+  // Q1 (medical index 0) sub-questions
+  if (getEffectiveValue(0) === true) {
+    if (!medicalHistory.condition.trim() || !medicalHistory.yearOfDiagnosis || !medicalHistory.currentStatus) {
+      incompleteParentIndices.set(offset + 0, { label: `Question ${offset + 1}`, questionText: questions[0].question });
+    }
+  }
+
+  // Q2 (medical index 1) hospitalization sub-questions — only reasons is mandatory now
+  if (getEffectiveValue(1) === true) {
+    if (hospitalization.reasons.length === 0) {
+      incompleteParentIndices.set(offset + 1, { label: `Question ${offset + 2}`, questionText: questions[1].question });
+    }
+    if (hospitalization.reasons.includes("Other (please specify)") && !hospitalization.reasonOther.trim()) {
+      incompleteParentIndices.set(offset + 1, { label: `Question ${offset + 2}`, questionText: questions[1].question });
+    }
+    if (hospitalization.outcome === "Other (please specify)" && !hospitalization.outcomeOther.trim()) {
+      incompleteParentIndices.set(offset + 1, { label: `Question ${offset + 2}`, questionText: questions[1].question });
+    }
+  }
+
+  // Q3 (medical index 2) - text details required
+  if (getEffectiveValue(2) === true && answers[2].details.trim() === "") {
+    incompleteParentIndices.set(offset + 2, { label: `Question ${offset + 3}`, questionText: questions[2].question });
+  }
+
+  // Q4 (medical index 3) - Disability: percentage required when Yes
+  if (getEffectiveValue(3) === true) {
+    if (!disability.percentage || disability.hasCertificate === null) {
+      incompleteParentIndices.set(offset + 3, { label: `Question ${offset + 4}`, questionText: questions[3].question });
+    }
+  }
+
+  // Q5 (medical index 4) - Past insurance: details required when Yes
+  if (getEffectiveValue(4) === true && answers[4].details.trim() === "") {
+    incompleteParentIndices.set(offset + 4, { label: `Question ${offset + 5}`, questionText: questions[4].question });
+  }
+
+  if (incompleteParentIndices.size > 1) {
+    toast.error("Please answer all questions before submitting.");
+    return;
+  }
+  if (incompleteParentIndices.size === 1) {
+    const entry = Array.from(incompleteParentIndices.values())[0];
+    toast.error(`Please answer ${entry.label} and it's sub-questions before submitting.`);
+    return;
+  }
+  toast.success("Proposal submitted successfully!");
+
+  let medicalHistoryUsable = {
+    "Medical condition": medicalHistory.condition,
+    "Year Of diagnosis": medicalHistory.yearOfDiagnosis,
+    "Current Status": medicalHistory.currentStatus
   };
 
-  const handleSubmit = () => {
-    medicalHistoryRef.current?.flushPendingInput();
-
-    if (!age.trim() || !gender) {
-      toast.error("Please provide your age and gender.");
-      return;
-    }
-
-    const incompleteParentIndices = new Map<number, { label: string; questionText: string }>();
-
-    // Check lifestyle questions
-    lifestyleQuestions.forEach((q, i) => {
-      if (lifestyleAnswers[i].value === null) {
-        incompleteParentIndices.set(i, { label: `Question ${i + 1}`, questionText: q.question });
-      }
-    });
-
-    // Tobacco sub-question
-    if (lifestyleAnswers[0].value === true && tobaccoForms.length === 0) {
-      incompleteParentIndices.set(0, { label: "Question 1", questionText: lifestyleQuestions[0].question });
-    }
-
-    // Check unanswered medical main questions
-    const offset = lifestyleQuestions.length;
-    questions.forEach((q, i) => {
-      if (getEffectiveValue(i) === null) {
-        incompleteParentIndices.set(offset + i, { label: `Question ${offset + i + 1}`, questionText: q.question });
-      }
-    });
-
-    // Q1 (medical index 0) sub-questions
-    if (getEffectiveValue(0) === true) {
-      if (!medicalHistory.condition.trim() || !medicalHistory.yearOfDiagnosis || !medicalHistory.currentStatus) {
-        incompleteParentIndices.set(offset + 0, { label: `Question ${offset + 1}`, questionText: questions[0].question });
-      }
-    }
-
-    // Q2 (medical index 1) hospitalization sub-questions — only reasons is mandatory now
-    if (getEffectiveValue(1) === true) {
-      if (hospitalization.reasons.length === 0) {
-        incompleteParentIndices.set(offset + 1, { label: `Question ${offset + 2}`, questionText: questions[1].question });
-      }
-      if (hospitalization.reasons.includes("Other (please specify)") && !hospitalization.reasonOther.trim()) {
-        incompleteParentIndices.set(offset + 1, { label: `Question ${offset + 2}`, questionText: questions[1].question });
-      }
-      if (hospitalization.outcome === "Other (please specify)" && !hospitalization.outcomeOther.trim()) {
-        incompleteParentIndices.set(offset + 1, { label: `Question ${offset + 2}`, questionText: questions[1].question });
-      }
-    }
-
-    // Q3 (medical index 2) - text details required
-    if (getEffectiveValue(2) === true && answers[2].details.trim() === "") {
-      incompleteParentIndices.set(offset + 2, { label: `Question ${offset + 3}`, questionText: questions[2].question });
-    }
-
-    // Q4 (medical index 3) - Disability: percentage required when Yes
-    if (getEffectiveValue(3) === true) {
-      if (!disability.percentage || disability.hasCertificate === null) {
-        incompleteParentIndices.set(offset + 3, { label: `Question ${offset + 4}`, questionText: questions[3].question });
-      }
-    }
-
-    // Q5 (medical index 4) - Past insurance: details required when Yes
-    if (getEffectiveValue(4) === true && answers[4].details.trim() === "") {
-      incompleteParentIndices.set(offset + 4, { label: `Question ${offset + 5}`, questionText: questions[4].question });
-    }
-
-    if (incompleteParentIndices.size > 1) {
-      toast.error("Please answer all questions before submitting.");
-      return;
-    }
-    if (incompleteParentIndices.size === 1) {
-      const entry = Array.from(incompleteParentIndices.values())[0];
-      toast.error(`Please answer ${entry.label} and it's sub-questions before submitting.`);
-      return;
-    }
-    toast.success("Proposal submitted successfully!");
-
-    let medicalHistoryUsable = {
-      "Medical condition": medicalHistory.condition,
-      "Year Of diagnosis": medicalHistory.yearOfDiagnosis,
-      "Current Status": medicalHistory.currentStatus
-    };
-
-    let hospitalizationUsable = {
-      "Reason(s) for hospitalization/surgery": hospitalization.reasons.join(", ") + (hospitalization.reasons.includes("Other (please specify)") ? ` (${hospitalization.reasonOther})` : ""),
-      "Time since hospitalization/surgery": hospitalization.yearsAgo || hospitalization.monthsAgo ? `${hospitalization.yearsAgo || "0"} year(s) and ${hospitalization.monthsAgo || "0"} month(s) ago` : "N/A",
-      "Outcome": hospitalization.outcome ? (hospitalization.outcome + (hospitalization.outcome === "Other (please specify)" ? ` (${hospitalization.outcomeOther})` : "")) : "N/A",
-      "Has discharge records": hospitalization.hasDischargeRecords === true ? "Yes" : hospitalization.hasDischargeRecords === false ? "No" : "N/A",
-      "Past medical records uploaded": hospitalization.uploadedFiles.length > 0 ? "Yes" : "No"
-    };
-
-    let disabilityUsable = {
-      "Percentage of disability": disability.percentage ? `${disability.percentage}%` : "N/A",
-      "Disability certificate available": disability.hasCertificate === true ? "Yes" : disability.hasCertificate === false ? "No" : "N/A",
-      "Certificate uploaded": disability.certificateFile ? "Yes" : "No",
-    };
-
-    let proposal_object = {
-      age, gender,
-      lifestyle: [
-        {
-          question: lifestyleQuestions[0].question,
-          answer: lifestyleAnswers[0].value === true ? "Yes" : "No",
-          ...(lifestyleAnswers[0].value === true ? { details: { "Tobacco form(s)": tobaccoForms.join(", ") } } : {}),
-        },
-        {
-          question: lifestyleQuestions[1].question,
-          answer: lifestyleAnswers[1].value === true ? "Yes" : "No",
-        },
-      ],
-      answers: answers.map((a, i) => ({
-        question: questions[i].question,
-        answer: getEffectiveValue(i) === true ? "Yes" : "No",
-        ...(getEffectiveValue(i) === true && questions[i].category === "Medication/ Investigations/ Symptoms/ Treatment" ? { details: a.details } : {}),
-        ...(getEffectiveValue(i) === true && questions[i].category === "Medical History" ? { details: medicalHistoryUsable } : {}),
-        ...(getEffectiveValue(i) === true && questions[i].category === "Hospitalization & Surgery" ? { details: hospitalizationUsable } : {}),
-        ...(getEffectiveValue(i) === true && questions[i].category === "Disability" ? { details: disabilityUsable } : {}),
-        ...(getEffectiveValue(i) === true && questions[i].category === "Past insurance proposal history" ? { details: a.details } : {}),
-      }))
-    };
-
-    fireAjax({ ...getClarity, body: proposal_object });
+  let hospitalizationUsable = {
+    "Reason(s) for hospitalization/surgery": hospitalization.reasons.join(", ") + (hospitalization.reasons.includes("Other (please specify)") ? ` (${hospitalization.reasonOther})` : ""),
+    "Time since hospitalization/surgery": hospitalization.yearsAgo || hospitalization.monthsAgo ? `${hospitalization.yearsAgo || "0"} year(s) and ${hospitalization.monthsAgo || "0"} month(s) ago` : "N/A",
+    "Outcome": hospitalization.outcome ? (hospitalization.outcome + (hospitalization.outcome === "Other (please specify)" ? ` (${hospitalization.outcomeOther})` : "")) : "N/A",
+    "Has discharge records": hospitalization.hasDischargeRecords === true ? "Yes" : hospitalization.hasDischargeRecords === false ? "No" : "N/A",
+    "Past medical records uploaded": hospitalization.uploadedFiles.length > 0 ? "Yes" : "No"
   };
 
-  return (
-    <div className="min-h-screen bg-background">
-      <div className="mx-auto max-w-2xl px-4 py-10">
-        {/* Header */}
-        <div className="mb-8 text-center">
-          <div className="mb-3 inline-flex items-center justify-center rounded-full bg-primary/10 p-3">
-            <ShieldCheck className="h-7 w-7 text-primary" />
+  let disabilityUsable = {
+    "Percentage of disability": disability.percentage ? `${disability.percentage}%` : "N/A",
+    "Disability certificate available": disability.hasCertificate === true ? "Yes" : disability.hasCertificate === false ? "No" : "N/A",
+    "Certificate uploaded": disability.certificateFile ? "Yes" : "No",
+  };
+
+  let proposal_object = {
+    age, gender,
+    lifestyle: [
+      {
+        question: lifestyleQuestions[0].question,
+        answer: lifestyleAnswers[0].value === true ? "Yes" : "No",
+        ...(lifestyleAnswers[0].value === true ? { details: { "Tobacco form(s)": tobaccoForms.join(", ") } } : {}),
+      },
+      {
+        question: lifestyleQuestions[1].question,
+        answer: lifestyleAnswers[1].value === true ? "Yes" : "No",
+      },
+    ],
+    answers: answers.map((a, i) => ({
+      question: questions[i].question,
+      answer: getEffectiveValue(i) === true ? "Yes" : "No",
+      ...(getEffectiveValue(i) === true && questions[i].category === "Medication/ Investigations/ Symptoms/ Treatment" ? { details: a.details } : {}),
+      ...(getEffectiveValue(i) === true && questions[i].category === "Medical History" ? { details: medicalHistoryUsable } : {}),
+      ...(getEffectiveValue(i) === true && questions[i].category === "Hospitalization & Surgery" ? { details: hospitalizationUsable } : {}),
+      ...(getEffectiveValue(i) === true && questions[i].category === "Disability" ? { details: disabilityUsable } : {}),
+      ...(getEffectiveValue(i) === true && questions[i].category === "Past insurance proposal history" ? { details: a.details } : {}),
+    }))
+  };
+
+  fireAjax({ ...getClarity, body: proposal_object });
+};
+
+return (
+  <div className="min-h-screen bg-background">
+    <div className="mx-auto max-w-2xl px-4 py-10">
+      {/* Header */}
+      <div className="mb-8 text-center">
+        <div className="mb-3 inline-flex items-center justify-center rounded-full bg-primary/10 p-3">
+          <ShieldCheck className="h-7 w-7 text-primary" />
+        </div>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">
+          Health Insurance Proposal Form
+        </h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Please answer the following questions accurately to proceed with your application.
+        </p>
+      </div>
+
+      {/* Progress */}
+      <div className="mb-6">
+        <ProgressBar answered={answered} total={totalQuestions} />
+      </div>
+
+      {/* Personal Info */}
+      <PersonalInfoFields
+        age={age}
+        gender={gender}
+        onAgeChange={setAge}
+        onGenderChange={setGender}
+      />
+
+      {/* Lifestyle Questions */}
+      <div className="space-y-4">
+        {lifestyleQuestions.map((q, i) => (
+          <ProposalQuestion
+            key={`lifestyle-${i}`}
+            number={i + 1}
+            category={q.category}
+            question={q.question}
+            detailPrompt={q.detailPrompt}
+            value={lifestyleAnswers[i].value}
+            details=""
+            onAnswer={(v) => updateLifestyleAnswer(i, v)}
+            onDetailsChange={() => { }}
+            {...(i === 0 && {
+              customDetails: (
+                <TobaccoDetails
+                  selectedForms={tobaccoForms}
+                  onChange={setTobaccoForms}
+                />
+              ),
+            })}
+            {...(i === 1 && { hideDetails: true })}
+          />
+        ))}
+      </div>
+
+      {/* Medical Questions */}
+      <div className="mt-4 space-y-4">
+        {questions.map((q, i) => (
+          <ProposalQuestion
+            key={`medical-${i}`}
+            number={lifestyleQuestions.length + i + 1}
+            category={q.category}
+            question={q.question}
+            detailPrompt={q.detailPrompt}
+            value={getEffectiveValue(i)}
+            details={answers[i].details}
+            onAnswer={(v) => updateAnswer(i, v)}
+            onDetailsChange={(d) => updateDetails(i, d)}
+            disabled={i === 1 && isSurgeryRelated}
+            note={i === 1 ? autoAnswerNote : undefined}
+            {...(i === 0 && {
+              customDetails: (
+                <MedicalHistoryDetails
+                  ref={medicalHistoryRef}
+                  data={medicalHistory}
+                  onChange={setMedicalHistory}
+                  age={age}
+                />
+              ),
+            })}
+            {...(i === 1 && {
+              customDetails: (
+                <HospitalizationDetails
+                  data={hospitalization}
+                  onChange={setHospitalization}
+                />
+              ),
+            })}
+            {...(i === 3 && {
+              customDetails: (
+                <DisabilityDetails
+                  data={disability}
+                  onChange={setDisability}
+                />
+              ),
+            })}
+          />
+        ))}
+      </div>
+
+      <div>
+        {discrepancies.length > 0 && (
+          <div className="mb-4 rounded-md bg-destructive/10 p-4 text-sm text-destructive">
+            <p className="font-medium">Discrepancies detected:</p>
+            <ul className="list-disc pl-5">
+              {discrepancies.map((d, i) => (
+                <li key={i}>{d}</li>
+              ))}
+            </ul>
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            Health Insurance Proposal Form
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Please answer the following questions accurately to proceed with your application.
-          </p>
-        </div>
+        )}
+      </div>
 
-        {/* Progress */}
-        <div className="mb-6">
-          <ProgressBar answered={answered} total={totalQuestions} />
-        </div>
-
-        {/* Personal Info */}
-        <PersonalInfoFields
-          age={age}
-          gender={gender}
-          onAgeChange={setAge}
-          onGenderChange={setGender}
-        />
-
-        {/* Lifestyle Questions */}
-        <div className="space-y-4">
-          {lifestyleQuestions.map((q, i) => (
-            <ProposalQuestion
-              key={`lifestyle-${i}`}
-              number={i + 1}
-              category={q.category}
-              question={q.question}
-              detailPrompt={q.detailPrompt}
-              value={lifestyleAnswers[i].value}
-              details=""
-              onAnswer={(v) => updateLifestyleAnswer(i, v)}
-              onDetailsChange={() => { }}
-              {...(i === 0 && {
-                customDetails: (
-                  <TobaccoDetails
-                    selectedForms={tobaccoForms}
-                    onChange={setTobaccoForms}
-                  />
-                ),
-              })}
-              {...(i === 1 && { hideDetails: true })}
-            />
-          ))}
-        </div>
-
-        {/* Medical Questions */}
-        <div className="mt-4 space-y-4">
-          {questions.map((q, i) => (
-            <ProposalQuestion
-              key={`medical-${i}`}
-              number={lifestyleQuestions.length + i + 1}
-              category={q.category}
-              question={q.question}
-              detailPrompt={q.detailPrompt}
-              value={getEffectiveValue(i)}
-              details={answers[i].details}
-              onAnswer={(v) => updateAnswer(i, v)}
-              onDetailsChange={(d) => updateDetails(i, d)}
-              disabled={i === 1 && isSurgeryRelated}
-              note={i === 1 ? autoAnswerNote : undefined}
-              {...(i === 0 && {
-                customDetails: (
-                  <MedicalHistoryDetails
-                    ref={medicalHistoryRef}
-                    data={medicalHistory}
-                    onChange={setMedicalHistory}
-                    age={age}
-                  />
-                ),
-              })}
-              {...(i === 1 && {
-                customDetails: (
-                  <HospitalizationDetails
-                    data={hospitalization}
-                    onChange={setHospitalization}
-                  />
-                ),
-              })}
-              {...(i === 3 && {
-                customDetails: (
-                  <DisabilityDetails
-                    data={disability}
-                    onChange={setDisability}
-                  />
-                ),
-              })}
-            />
-          ))}
-        </div>
-
-        <div>
-          {discrepancies.length > 0 && (
-            <div className="mb-4 rounded-md bg-destructive/10 p-4 text-sm text-destructive">
-              <p className="font-medium">Discrepancies detected:</p>
-              <ul className="list-disc pl-5">
-                {discrepancies.map((d, i) => (
-                  <li key={i}>{d}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </div>
-
-        {/* Submit */}
-        <div className="mt-8 text-center">
-          <button
-            onClick={handleSubmit}
-            className="rounded-lg bg-[hsl(var(--answer-active))] px-10 py-3 text-sm font-semibold text-[hsl(var(--answer-active-foreground))] shadow-sm transition-all hover:opacity-90 active:scale-[0.98]"
-          >
-            Submit
-          </button>
-        </div>
+      {/* Submit */}
+      <div className="mt-8 text-center">
+        <button
+          onClick={handleSubmit}
+          className="rounded-lg bg-[hsl(var(--answer-active))] px-10 py-3 text-sm font-semibold text-[hsl(var(--answer-active-foreground))] shadow-sm transition-all hover:opacity-90 active:scale-[0.98]"
+        >
+          Submit
+        </button>
       </div>
     </div>
-  );
+  </div>
+);
 };
 
 export default Index;
