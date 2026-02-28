@@ -222,17 +222,26 @@ const Index = () => {
     method: "post",
     body: {},
     callBack: (result) => {
-
       console.log("Raw response:", result.data.response);
       const uwobject = result.data.response;
       console.log("uwobject:", uwobject);
 
-      if (uwobject.discrepancies_detected && uwobject.discrepancies_detected.length > 0) {
-        console.warn("Discrepancies detected:", uwobject.discrepancies_detected);
-        toast.error("We detected some discrepancies in your answers. Please review your responses and submit again.");
+      const hasDiscrepancies = uwobject.discrepancies_detected && uwobject.discrepancies_detected.length > 0;
+      const hasAmbiguous = uwobject.ambiguous_conditions_to_clarify && uwobject.ambiguous_conditions_to_clarify.length > 0;
 
-      } else if (uwobject.underwriting_decision === "Accept") {
-        toast.success("Congratulations! Your proposal has been accepted.");
+      if (hasDiscrepancies) {
+        console.warn("Discrepancies detected:", uwobject.discrepancies_detected);
+        setDiscrepancies(uwobject.discrepancies_detected.map((d: any) => d.detected_issue || d));
+        toast.error("We detected some discrepancies in your answers. Please review your responses and submit again.");
+      }
+
+      if (hasAmbiguous) {
+        console.warn("Ambiguous conditions to clarify:", uwobject.ambiguous_conditions_to_clarify);
+        toast.error("Some conditions need clarification. Please review and update your answers.");
+      }
+
+      if (!hasDiscrepancies && !hasAmbiguous) {
+        toast.success("Proposal submitted successfully!");
       }
 
       setGotClarity(true);
@@ -242,7 +251,6 @@ const Index = () => {
       toast.error("An error occurred while submitting your proposal. Please try again later.");
     }
   };
-};
 
 const postProposal = {
   url: getHost() + `proposal/submit/`,
@@ -345,9 +353,11 @@ const handleSubmit = () => {
     toast.error(`Please answer ${entry.label} and it's sub-questions before submitting.`);
     return;
   }
-  toast.success("Proposal submitted successfully!");
+    if (gotClarity) {
+      toast.success("Proposal submitted successfully!");
+    }
 
-  let medicalHistoryUsable = {
+    let medicalHistoryUsable = {
     "Medical condition": medicalHistory.condition,
     "Year Of diagnosis": medicalHistory.yearOfDiagnosis,
     "Current Status": medicalHistory.currentStatus
