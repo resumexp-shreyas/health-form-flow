@@ -84,7 +84,7 @@ const DisabilityDetails = ({ data, onChange }: DisabilityDetailsProps) => {
               <label className="flex flex-1 cursor-pointer items-center gap-2 rounded-md border border-border bg-muted/50 px-3 py-2 text-sm text-muted-foreground hover:bg-secondary transition-colors">
                 <FileText className="h-4 w-4 shrink-0" />
                 <span className="truncate">
-                  {data.certificateFile?.name || "Choose a file... (optional)"}
+                  {data.certificateFile?.name || "Choose a file..."}
                 </span>
                 <input
                   type="file"

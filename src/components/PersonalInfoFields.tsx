@@ -20,14 +20,13 @@ const PersonalInfoFields = ({
       {/* Age */}
       <div className="space-y-2">
         <label className="text-sm font-medium text-card-foreground">
-          Age <span className="text-destructive">*</span>
+          Age (in years)<span className="text-destructive">*</span>
         </label>
         <Input
           type="number"
           inputMode="numeric"
           min={0}
           max={120}
-          placeholder="Enter your age"
           value={age}
           onChange={(e) => {
             const v = e.target.value;
@@ -35,7 +34,7 @@ const PersonalInfoFields = ({
               onAgeChange(v);
             }
           }}
-          className="max-w-[160px]"
+          className="w-[72px] text-center"
         />
       </div>
 
@@ -50,11 +49,10 @@ const PersonalInfoFields = ({
               key={option}
               type="button"
               onClick={() => onGenderChange(option)}
-              className={`rounded-md px-5 py-2 text-sm font-medium transition-all duration-150 ${
-                gender === option
-                  ? "bg-[hsl(var(--answer-active))] text-[hsl(var(--answer-active-foreground))] shadow-sm"
-                  : "border border-border bg-card text-muted-foreground hover:bg-secondary"
-              }`}
+              className={`rounded-md px-5 py-2 text-sm font-medium transition-all duration-150 ${gender === option
+                ? "bg-[hsl(var(--answer-active))] text-[hsl(var(--answer-active-foreground))] shadow-sm"
+                : "border border-border bg-card text-muted-foreground hover:bg-secondary"
+                }`}
             >
               {option}
             </button>
