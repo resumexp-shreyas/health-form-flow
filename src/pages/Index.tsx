@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import ProposalQuestion from "@/components/ProposalQuestion";
 import MedicalHistoryDetails, { type MedicalHistoryDetailsRef } from "@/components/MedicalHistoryDetails";
 import HospitalizationDetails, { type HospitalizationData } from "@/components/HospitalizationDetails";
+import DisabilityDetails, { type DisabilityData } from "@/components/DisabilityDetails";
 import TobaccoDetails from "@/components/TobaccoDetails";
 import PersonalInfoFields from "@/components/PersonalInfoFields";
 import ProgressBar from "@/components/ProgressBar";
@@ -29,28 +30,33 @@ const questions = [
   {
     category: "Medical History",
     question:
-      "Have you been diagnosed with or suffered from any medical condition in the last 4 years?",
+      "Do you have any past or ongoing disease/ health conditions?",
     detailPrompt:
       "Please specify condition(s), year of diagnosis, and current status.",
   },
   {
     category: "Hospitalization & Surgery",
     question:
-      "Have you ever been hospitalized, undergone surgery, or do you have any planned surgical procedures?",
+      "Have you ever been hospitalized, and/or undergone any surgical procedure in last 4 years and/or suggested to undergo in future?",
     detailPrompt: "Provide details (reason, date, outcome).",
   },
   {
-    category: "Investigations & Tests",
+    category: "Medication/ Investigations/ Symptoms/ Treatment",
     question:
-      "Have you undergone any major medical investigations (MRI, CT scan, biopsy) in the last 2 years?",
-    detailPrompt: "Mention type of test and findings.",
+      "Have you ever taken any medication and/ or has/ had any symptoms and /or suggested investigation or treatment or surgery in last 2 years or advised to undergo in future?",
+    detailPrompt: "Name investigation/ medication/ symptom/ treatment",
   },
   {
-    category: "Chronic or Severe Conditions",
+    category: "Disability",
     question:
-      "Have you ever suffered from any severe or chronic medical condition (e.g., cancer, heart disease, diabetes) that is now cured or under treatment?",
-    detailPrompt:
-      "Provide condition, treatment received, and current status.",
+      "Do you have any disability?",
+    detailPrompt: "",
+  },
+  {
+    category: "Past insurance proposal history",
+    question:
+      "Has any proposal/ policy of life or health or critical illness insurance from any insurer declined, deferred, loaded, subject to any special condition such as exclusions?",
+    detailPrompt: "Please provide details.",
   },
 ];
 
@@ -92,6 +98,11 @@ const Index = () => {
     hasDischargeRecords: null,
     uploadedFiles: [],
   });
+  const [disability, setDisability] = useState<DisabilityData>({
+    percentage: "",
+    hasCertificate: null,
+    certificateFile: null,
+  });
 
   // Auto-answer Q2 based on medical history current status
   const surgeryStatuses = [
@@ -106,7 +117,7 @@ const Index = () => {
       : "Answered Yes as we noted you are recovering from surgery."
     : null;
 
-  // Effective value for Q2: force Yes if surgery-related
+  // Effective value for Q2 (index 1): force Yes if surgery-related
   const getEffectiveValue = (index: number) => {
     if (index === 1 && isSurgeryRelated) return true;
     return answers[index].value;
@@ -122,7 +133,6 @@ const Index = () => {
     setLifestyleAnswers((prev) => {
       const next = [...prev];
       next[index] = { ...next[index], value };
-      // Clear tobacco forms when tobacco answer changes to No
       if (index === 0 && !value) {
         setTobaccoForms([]);
       }
@@ -136,6 +146,10 @@ const Index = () => {
       next[index] = { ...next[index], value, details: value ? next[index].details : "" };
       return next;
     });
+    // Reset disability data when Q4 (Disability, index 3) is set to No
+    if (index === 3 && !value) {
+      setDisability({ percentage: "", hasCertificate: null, certificateFile: null });
+    }
   };
 
   const updateDetails = (index: number, details: string) => {
@@ -147,135 +161,78 @@ const Index = () => {
   };
 
 
-
-/**
- * deriveUwObject(response)
- * - Accepts a string (possibly prefixed with the word "json" or other noise)
- *   or an already-parsed object.
- * - Returns a JavaScript object parsed from the JSON content, or throws an Error.
- */
-function deriveUwObject(response) {
-  // If it's already an object, return it directly
+  /**
+   * deriveUwObject(response)
+   */
+  function deriveUwObject(response) {
   if (response && typeof response === 'object') return response;
-
   if (typeof response !== 'string') {
     throw new Error('Unsupported response type');
   }
-
-  // Trim whitespace
   let s = response.trim();
-
-  // If the string starts with the literal word "json" (case-insensitive),
-  // remove that prefix and any following punctuation or whitespace.
-  // Examples handled: "json{...}", "json { ... }", "JSON: {...}", "json=\n{...}"
-  const jsonPrefixMatch = s.match(/^\s*json\s*[:=]?\s*/i);
+  const jsonPrefixMatch = s.match(/^\\s*json\\s*[:=]?\\s*/i);
   if (jsonPrefixMatch) {
     s = s.slice(jsonPrefixMatch[0].length).trim();
   }
-
-  // Find the first JSON opening character ({ or [)
   const firstBraceIndex = Math.min(
     ...['{', '[']
       .map(ch => s.indexOf(ch))
       .filter(idx => idx !== -1)
   );
-
   if (firstBraceIndex > 0) {
     s = s.slice(firstBraceIndex);
   }
-
-  // Remove any trailing characters after the JSON (like semicolons or stray text)
-  // We attempt to parse progressively: try full string, if fails try to find matching bracket.
   try {
     return JSON.parse(s);
   } catch (e) {
-    // Attempt to extract a balanced JSON substring by scanning for matching braces/brackets
     const startChar = s[0];
     const endChar = startChar === '{' ? '}' : startChar === '[' ? ']' : null;
     if (!endChar) throw new Error('No JSON object or array found in response');
-
     let depth = 0;
     let inString: string | false = false;
     let escape = false;
     let endIndex = -1;
-
     for (let i = 0; i < s.length; i++) {
       const ch = s[i];
-
-      if (escape) {
-        escape = false;
-        continue;
-      }
-      if (ch === '\\') {
-        escape = true;
-        continue;
-      }
+      if (escape) { escape = false; continue; }
+      if (ch === '\\\\') { escape = true; continue; }
       if (ch === '"' || ch === "'") {
-        // toggle inString only for double quotes (JSON uses double quotes),
-        // but handle single quotes gracefully if present inside string content.
-        if (!inString) {
-          inString = ch;
-        } else if (inString === ch) {
-          inString = false;
-        }
+        if (!inString) { inString = ch; } else if (inString === ch) { inString = false; }
         continue;
       }
       if (inString) continue;
-
       if (ch === startChar) depth++;
       else if (ch === endChar) {
         depth--;
-        if (depth === 0) {
-          endIndex = i;
-          break;
-        }
+        if (depth === 0) { endIndex = i; break; }
       }
     }
-
-    if (endIndex === -1) {
-      throw new Error('Could not find balanced JSON substring');
-    }
-
+    if (endIndex === -1) throw new Error('Could not find balanced JSON substring');
     const candidate = s.slice(0, endIndex + 1);
-    try {
-      return JSON.parse(candidate);
-    } catch (err2) {
-      throw new Error('Failed to parse JSON: ' + err2.message);
-    }
+    try { return JSON.parse(candidate); }
+    catch (err2) { throw new Error('Failed to parse JSON: ' + err2.message); }
   }
 }
+
   const getClarity = {
     url: getHost() + `proposal/getclarity/`,
     method: "post",
     body: {},
-
     callBack: (result) => {
-
       console.log("Raw response:", result.data.response);
-
-      // // Convert to object
-    // const uwobject = deriveUwObject(result.data.response);
-    const uwobject = result.data.response; // Assuming the API now returns a clean JSON object without the "json" prefix or other noise
-
-    // // Access values
-    console.log("uwobject:", uwobject);
-
-    if (uwobject.underwriting_decision === "Ask more questions") {
-      navigate(`/reflex-questions`, {
-        state: { questions: uwobject.more_questions_details },
-      });
-    }else if (uwobject.underwriting_decision === "Accept") {
-      toast.success("Congratulations! Your proposal has been accepted.");
-    } else if (uwobject.underwriting_decision === "Reject") {
-      toast.error("We regret to inform you that your proposal has been rejected.");
-          } //else {
-            //navigate(`/uw-decision-summary`, {
-            // state: { uwobject: uwobject },
-            // });
-            //}
-
-  },
-    errorCallBack: (error) => { 
+      const uwobject = result.data.response;
+      console.log("uwobject:", uwobject);
+      if (uwobject.underwriting_decision === "Ask more questions") {
+        navigate(`/reflex-questions`, {
+          state: { questions: uwobject.more_questions_details },
+        });
+      } else if (uwobject.underwriting_decision === "Accept") {
+        toast.success("Congratulations! Your proposal has been accepted.");
+      } else if (uwobject.underwriting_decision === "Reject") {
+        toast.error("We regret to inform you that your proposal has been rejected.");
+      }
+    },
+    errorCallBack: (error) => {
       console.error("Error submitting proposal:", error);
       toast.error("An error occurred while submitting your proposal. Please try again later.");
     }
@@ -285,69 +242,45 @@ function deriveUwObject(response) {
     url: getHost() + `proposal/submit/`,
     method: "post",
     body: {},
-
     callBack: (result) => {
-
       console.log("Raw response:", result.data.response);
       console.log("underwriting_decision:", result.data.response.underwriting_decision);
-
-
-    // // Convert to object
-    // const uwobject = deriveUwObject(result.data.response);
-    const uwobject = result.data.response; // Assuming the API now returns a clean JSON object without the "json" prefix or other noise
-
-    // // Access values
-    // console.log("identified_health_profile=", uwobject.identified_health_profile);
-    // console.log("medical_conditions=", uwobject.identified_health_profile.medical_conditions);
-    // console.log("underwriting_decision=",uwobject.underwriting_decision);
-    console.log("uwobject:", uwobject);
-
-    if (uwobject.underwriting_decision === "Ask more questions") {
-      navigate(`/reflex-questions`, {
-        state: { questions: uwobject.more_questions_details },
-      });
-    }else if (uwobject.underwriting_decision === "Accept") {
-      toast.success("Congratulations! Your proposal has been accepted.");
-    } else if (uwobject.underwriting_decision === "Reject") {
-      toast.error("We regret to inform you that your proposal has been rejected.");
-          } //else {
-            //navigate(`/uw-decision-summary`, {
-            // state: { uwobject: uwobject },
-            // });
-            //}
-
-  },
-    errorCallBack: (error) => { 
+      const uwobject = result.data.response;
+      console.log("uwobject:", uwobject);
+      if (uwobject.underwriting_decision === "Ask more questions") {
+        navigate(`/reflex-questions`, {
+          state: { questions: uwobject.more_questions_details },
+        });
+      } else if (uwobject.underwriting_decision === "Accept") {
+        toast.success("Congratulations! Your proposal has been accepted.");
+      } else if (uwobject.underwriting_decision === "Reject") {
+        toast.error("We regret to inform you that your proposal has been rejected.");
+      }
+    },
+    errorCallBack: (error) => {
       console.error("Error submitting proposal:", error);
       toast.error("An error occurred while submitting your proposal. Please try again later.");
     }
   };
 
   const handleSubmit = () => {
-    // Flush any pending text in the condition input to chips before validation
     medicalHistoryRef.current?.flushPendingInput();
 
     if (!age.trim() || !gender) {
       toast.error("Please provide your age and gender.");
       return;
     }
-    // Collect which parent questions have issues (unanswered main or incomplete sub-questions)
-    // We use a map of { globalIndex => { label, questionText } } for unified error reporting
-    const allQuestions = [
-      ...lifestyleQuestions.map((q, i) => ({ ...q, globalIndex: i })),
-      ...questions.map((q, i) => ({ ...q, globalIndex: lifestyleQuestions.length + i })),
-    ];
+
     const incompleteParentIndices = new Map<number, { label: string; questionText: string }>();
 
     // Check lifestyle questions
     lifestyleQuestions.forEach((q, i) => {
-      const gi = i;
       if (lifestyleAnswers[i].value === null) {
-        incompleteParentIndices.set(gi, { label: `Question ${gi + 1}`, questionText: q.question });
+        incompleteParentIndices.set(i, { label: `Question ${i + 1}`, questionText: q.question });
       }
     });
 
-    // Check tobacco sub-question: if Yes but no forms selected
+    // Tobacco sub-question
     if (lifestyleAnswers[0].value === true && tobaccoForms.length === 0) {
       incompleteParentIndices.set(0, { label: "Question 1", questionText: lifestyleQuestions[0].question });
     }
@@ -360,21 +293,16 @@ function deriveUwObject(response) {
       }
     });
 
-    // Check Q1 (medical) sub-questions
+    // Q1 (medical index 0) sub-questions
     if (getEffectiveValue(0) === true) {
       if (!medicalHistory.condition.trim() || !medicalHistory.yearOfDiagnosis || !medicalHistory.currentStatus) {
         incompleteParentIndices.set(offset + 0, { label: `Question ${offset + 1}`, questionText: questions[0].question });
       }
     }
 
-    // Check Q2 (medical) hospitalization sub-questions
+    // Q2 (medical index 1) hospitalization sub-questions — only reasons is mandatory now
     if (getEffectiveValue(1) === true) {
-      if (
-        hospitalization.reasons.length === 0 ||
-        !hospitalization.yearsAgo ||
-        !hospitalization.monthsAgo ||
-        !hospitalization.outcome
-      ) {
+      if (hospitalization.reasons.length === 0) {
         incompleteParentIndices.set(offset + 1, { label: `Question ${offset + 2}`, questionText: questions[1].question });
       }
       if (hospitalization.reasons.includes("Other (please specify)") && !hospitalization.reasonOther.trim()) {
@@ -385,12 +313,22 @@ function deriveUwObject(response) {
       }
     }
 
-    // Check Q3-Q4 (medical) details
-    answers.forEach((a, i) => {
-      if (i > 1 && getEffectiveValue(i) === true && a.details.trim() === "") {
-        incompleteParentIndices.set(offset + i, { label: `Question ${offset + i + 1}`, questionText: questions[i].question });
+    // Q3 (medical index 2) - text details required
+    if (getEffectiveValue(2) === true && answers[2].details.trim() === "") {
+      incompleteParentIndices.set(offset + 2, { label: `Question ${offset + 3}`, questionText: questions[2].question });
+    }
+
+    // Q4 (medical index 3) - Disability: percentage required when Yes
+    if (getEffectiveValue(3) === true) {
+      if (!disability.percentage) {
+        incompleteParentIndices.set(offset + 3, { label: `Question ${offset + 4}`, questionText: questions[3].question });
       }
-    });
+    }
+
+    // Q5 (medical index 4) - Past insurance: details required when Yes
+    if (getEffectiveValue(4) === true && answers[4].details.trim() === "") {
+      incompleteParentIndices.set(offset + 4, { label: `Question ${offset + 5}`, questionText: questions[4].question });
+    }
 
     if (incompleteParentIndices.size > 1) {
       toast.error("Please answer all questions before submitting.");
@@ -411,10 +349,16 @@ function deriveUwObject(response) {
 
     let hospitalizationUsable = {
       "Reason(s) for hospitalization/surgery": hospitalization.reasons.join(", ") + (hospitalization.reasons.includes("Other (please specify)") ? ` (${hospitalization.reasonOther})` : ""),
-      "Time since hospitalization/surgery": `${hospitalization.yearsAgo} year(s) and ${hospitalization.monthsAgo} month(s) ago`,
-      "Outcome": hospitalization.outcome + (hospitalization.outcome === "Other (please specify)" ? ` (${hospitalization.outcomeOther})` : ""),
+      "Time since hospitalization/surgery": hospitalization.yearsAgo || hospitalization.monthsAgo ? `${hospitalization.yearsAgo || "0"} year(s) and ${hospitalization.monthsAgo || "0"} month(s) ago` : "N/A",
+      "Outcome": hospitalization.outcome ? (hospitalization.outcome + (hospitalization.outcome === "Other (please specify)" ? ` (${hospitalization.outcomeOther})` : "")) : "N/A",
       "Has discharge records": hospitalization.hasDischargeRecords === true ? "Yes" : hospitalization.hasDischargeRecords === false ? "No" : "N/A",
       "Past medical records uploaded": hospitalization.uploadedFiles.length > 0 ? "Yes" : "No"
+    };
+
+    let disabilityUsable = {
+      "Percentage of disability": disability.percentage ? `${disability.percentage}%` : "N/A",
+      "Disability certificate available": disability.hasCertificate === true ? "Yes" : disability.hasCertificate === false ? "No" : "N/A",
+      "Certificate uploaded": disability.certificateFile ? "Yes" : "No",
     };
 
     let proposal_object = {
@@ -432,17 +376,16 @@ function deriveUwObject(response) {
       ],
       answers: answers.map((a, i) => ({
         question: questions[i].question,
-        answer: a.value === true ? "Yes" : "No",
-        ...(a.value === true && (questions[i].category === "Investigations & Tests" || questions[i].category === "Chronic or Severe Conditions") ? { details: a.details } : {}),
-        ...(a.value === true && (questions[i].category === "Medical History" ? { details: medicalHistoryUsable } : {})),
-        ...(a.value === true && (questions[i].category === "Hospitalization & Surgery" ? { details: hospitalizationUsable } : {}))
+        answer: getEffectiveValue(i) === true ? "Yes" : "No",
+        ...(getEffectiveValue(i) === true && questions[i].category === "Medication/ Investigations/ Symptoms/ Treatment" ? { details: a.details } : {}),
+        ...(getEffectiveValue(i) === true && questions[i].category === "Medical History" ? { details: medicalHistoryUsable } : {}),
+        ...(getEffectiveValue(i) === true && questions[i].category === "Hospitalization & Surgery" ? { details: hospitalizationUsable } : {}),
+        ...(getEffectiveValue(i) === true && questions[i].category === "Disability" ? { details: disabilityUsable } : {}),
+        ...(getEffectiveValue(i) === true && questions[i].category === "Past insurance proposal history" ? { details: a.details } : {}),
       }))
     };
 
-
-//    console.log("Prepared Proposal Object:", proposal_object);
     fireAjax({ ...getClarity, body: proposal_object });
-//    fireAjax({ ...postProposal, body: proposal_object });
   };
 
   return (
@@ -486,7 +429,7 @@ function deriveUwObject(response) {
               value={lifestyleAnswers[i].value}
               details=""
               onAnswer={(v) => updateLifestyleAnswer(i, v)}
-              onDetailsChange={() => {}}
+              onDetailsChange={() => { }}
               {...(i === 0 && {
                 customDetails: (
                   <TobaccoDetails
@@ -521,6 +464,7 @@ function deriveUwObject(response) {
                     ref={medicalHistoryRef}
                     data={medicalHistory}
                     onChange={setMedicalHistory}
+                    age={age}
                   />
                 ),
               })}
@@ -529,6 +473,14 @@ function deriveUwObject(response) {
                   <HospitalizationDetails
                     data={hospitalization}
                     onChange={setHospitalization}
+                  />
+                ),
+              })}
+              {...(i === 3 && {
+                customDetails: (
+                  <DisabilityDetails
+                    data={disability}
+                    onChange={setDisability}
                   />
                 ),
               })}

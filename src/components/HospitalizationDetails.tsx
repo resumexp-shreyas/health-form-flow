@@ -135,8 +135,8 @@ const HospitalizationDetails = ({ data, onChange }: HospitalizationDetailsProps)
 
       {/* When */}
       <div className="space-y-1.5">
-        <label className="text-xs font-medium text-muted-foreground">
-          When were you hospitalized?
+      <label className="text-xs font-medium text-muted-foreground">
+          When were you hospitalized? (if applicable)
         </label>
         <div className="flex items-center gap-2">
           <Select
@@ -173,7 +173,7 @@ const HospitalizationDetails = ({ data, onChange }: HospitalizationDetailsProps)
       {/* Outcome */}
       <div className="space-y-1.5">
         <label className="text-xs font-medium text-muted-foreground">
-          Outcome
+          Outcome of hospitalization/ surgery (if applicable)
         </label>
         <Select
           value={data.outcome}
@@ -200,7 +200,7 @@ const HospitalizationDetails = ({ data, onChange }: HospitalizationDetailsProps)
       {/* Discharge Summary */}
       <div className="space-y-3">
         <label className="text-xs font-medium text-muted-foreground">
-          Do you have discharge summary or any past medical records related to this hospitalization?
+          Do you have discharge summary or any past medical records to share with us?
         </label>
         <div className="flex gap-2">
           <button

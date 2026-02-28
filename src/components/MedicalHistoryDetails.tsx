@@ -25,10 +25,10 @@ export interface MedicalHistoryDetailsRef {
 interface MedicalHistoryDetailsProps {
   data: MedicalHistoryData;
   onChange: (data: MedicalHistoryData) => void;
+  age?: string;
 }
 
 const currentYear = new Date().getFullYear();
-const yearOptions = Array.from({ length: 5 }, (_, i) => String(currentYear - i));
 
 const statusOptions = [
   "I'm completely fine now",
@@ -56,7 +56,10 @@ function fuzzyMatch(text: string, query: string): boolean {
   return qi === q.length;
 }
 
-const MedicalHistoryDetails = forwardRef<MedicalHistoryDetailsRef, MedicalHistoryDetailsProps>(({ data, onChange }, ref) => {
+const MedicalHistoryDetails = forwardRef<MedicalHistoryDetailsRef, MedicalHistoryDetailsProps>(({ data, onChange, age }, ref) => {
+  const ageNum = age ? parseInt(age, 10) : 0;
+  const yearCount = ageNum > 0 ? ageNum : 5;
+  const yearOptions = Array.from({ length: yearCount }, (_, i) => String(currentYear - i));
   const [inputValue, setInputValue] = useState("");
   const [chips, setChips] = useState<string[]>(() =>
     data.condition ? data.condition.split("||").filter(Boolean) : []
