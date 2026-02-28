@@ -11,6 +11,7 @@ interface ProposalQuestionProps {
   onAnswer: (answer: boolean) => void;
   onDetailsChange: (details: string) => void;
   customDetails?: React.ReactNode;
+  hideDetails?: boolean;
   disabled?: boolean;
   note?: string | null;
 }
@@ -25,6 +26,7 @@ const ProposalQuestion = ({
   onAnswer,
   onDetailsChange,
   customDetails,
+  hideDetails,
   disabled,
   note,
 }: ProposalQuestionProps) => {
@@ -82,7 +84,7 @@ const ProposalQuestion = ({
             )}
           </div>
 
-          {value === true && (
+          {value === true && !hideDetails && (
             <div className="animate-in fade-in slide-in-from-top-2 duration-200">
               {customDetails ? (
                 customDetails
