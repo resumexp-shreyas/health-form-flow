@@ -8,7 +8,8 @@ import ProgressBar from "@/components/ProgressBar";
 import { ShieldCheck } from "lucide-react";
 import { fireAjax, getHost } from "../assets/Karma";
 import axios from "axios";
-
+import { useNavigate } from "react-router-dom";
+const navigate = useNavigate();
 
 const questions = [
   {
@@ -225,7 +226,12 @@ function deriveUwObject(response) {
     console.log("medical_conditions=", uwobject.identified_health_profile.medical_conditions);
     console.log("underwriting_decision=",uwobject.underwriting_decision);
     console.log("uwobject:", typeof(uwobject), uwobject);
+
+    navigate(`/reflex-questions`);
+
     },
+
+    
 
   };
 
