@@ -228,9 +228,11 @@ function deriveUwObject(response) {
     console.log("underwriting_decision=",uwobject.underwriting_decision);
     console.log("uwobject:", typeof(uwobject), uwobject);
 
-    navigate(`/reflex-questions`);
+    if (uwobject.underwriting_decision === "Ask more questions") {
+      navigate(`/reflex-questions`);
+    }
 
-    },
+  },
 
     
 
