@@ -269,6 +269,10 @@ const postProposal = {
       toast.success("Congratulations! Your proposal has been accepted.");
     } else if (uwobject.underwriting_decision === "Reject") {
       toast.error("We regret to inform you that your proposal has been rejected.");
+    } else if (uwobject.underwriting_decision === "Refer to UWR") {
+      navigate(`/uw-reflex-questions`, {
+        state: { questions: uwobject.suggested_questions },
+      });
     }
   },
   errorCallBack: (error) => {
