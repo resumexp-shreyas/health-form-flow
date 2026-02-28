@@ -336,7 +336,7 @@ const Index = () => {
     }
     if (incompleteParentIndices.size === 1) {
       const entry = Array.from(incompleteParentIndices.values())[0];
-      toast.error(`Please answer ${entry.label}: ${entry.questionText}`);
+      toast.error(`Please answer ${entry.label} and it's sub-questions before submitting.`);
       return;
     }
     toast.success("Proposal submitted successfully!");
