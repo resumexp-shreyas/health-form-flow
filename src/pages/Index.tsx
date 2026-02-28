@@ -112,27 +112,120 @@ const Index = () => {
 
 
 
+/**
+ * deriveUwObject(response)
+ * - Accepts a string (possibly prefixed with the word "json" or other noise)
+ *   or an already-parsed object.
+ * - Returns a JavaScript object parsed from the JSON content, or throws an Error.
+ */
+function deriveUwObject(response) {
+  // If it's already an object, return it directly
+  if (response && typeof response === 'object') return response;
+
+  if (typeof response !== 'string') {
+    throw new Error('Unsupported response type');
+  }
+
+  // Trim whitespace
+  let s = response.trim();
+
+  // If the string starts with the literal word "json" (case-insensitive),
+  // remove that prefix and any following punctuation or whitespace.
+  // Examples handled: "json{...}", "json { ... }", "JSON: {...}", "json=\n{...}"
+  const jsonPrefixMatch = s.match(/^\s*json\s*[:=]?\s*/i);
+  if (jsonPrefixMatch) {
+    s = s.slice(jsonPrefixMatch[0].length).trim();
+  }
+
+  // Find the first JSON opening character ({ or [)
+  const firstBraceIndex = Math.min(
+    ...['{', '[']
+      .map(ch => s.indexOf(ch))
+      .filter(idx => idx !== -1)
+  );
+
+  if (firstBraceIndex > 0) {
+    s = s.slice(firstBraceIndex);
+  }
+
+  // Remove any trailing characters after the JSON (like semicolons or stray text)
+  // We attempt to parse progressively: try full string, if fails try to find matching bracket.
+  try {
+    return JSON.parse(s);
+  } catch (e) {
+    // Attempt to extract a balanced JSON substring by scanning for matching braces/brackets
+    const startChar = s[0];
+    const endChar = startChar === '{' ? '}' : startChar === '[' ? ']' : null;
+    if (!endChar) throw new Error('No JSON object or array found in response');
+
+    let depth = 0;
+    let inString = false;
+    let escape = false;
+    let endIndex = -1;
+
+    for (let i = 0; i < s.length; i++) {
+      const ch = s[i];
+
+      if (escape) {
+        escape = false;
+        continue;
+      }
+      if (ch === '\\') {
+        escape = true;
+        continue;
+      }
+      if (ch === '"' || ch === "'") {
+        // toggle inString only for double quotes (JSON uses double quotes),
+        // but handle single quotes gracefully if present inside string content.
+        if (!inString) {
+          inString = ch;
+        } else if (inString === ch) {
+          inString = false;
+        }
+        continue;
+      }
+      if (inString) continue;
+
+      if (ch === startChar) depth++;
+      else if (ch === endChar) {
+        depth--;
+        if (depth === 0) {
+          endIndex = i;
+          break;
+        }
+      }
+    }
+
+    if (endIndex === -1) {
+      throw new Error('Could not find balanced JSON substring');
+    }
+
+    const candidate = s.slice(0, endIndex + 1);
+    try {
+      return JSON.parse(candidate);
+    } catch (err2) {
+      throw new Error('Failed to parse JSON: ' + err2.message);
+    }
+  }
+}
+
 
   const postProposal = {
     url: getHost() + `proposal/submit/`,
     method: "post",
     body: {},
 
-
-    onSuccess: (response: any) => {
-      toast.success("Proposal submitted successfully!");
-      console.log("Server Response:", response);
-    },
-    onError: (error: any) => {
-      toast.error("Failed to submit proposal. Please try again.");
-      console.error("Submission Error:", error);
-    },
-
     callBack: (result) => {
-      console.log("Callback Result:", result);
-    },
-    pure: false,
+      
+    // Convert to object
+    const uwobject = deriveUwObject(result.data.response);
 
+    // Access values
+    console.log("identified_health_profile=", uwobject.identified_health_profile);
+    console.log("medical_conditions=", uwobject.identified_health_profile.medical_conditions);
+    console.log("underwriting_decision=",uwobject.underwriting_decision);
+    console.log("uwobject:", typeof(uwobject), uwobject);
+    },
 
   };
 
