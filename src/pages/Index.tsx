@@ -210,7 +210,42 @@ function deriveUwObject(response) {
     }
   }
 }
+  const getClarity = {
+    url: getHost() + `proposal/getclarity/`,
+    method: "post",
+    body: {},
 
+    callBack: (result) => {
+
+      console.log("Raw response:", result.data.response);
+
+      // // Convert to object
+    // const uwobject = deriveUwObject(result.data.response);
+    const uwobject = result.data.response; // Assuming the API now returns a clean JSON object without the "json" prefix or other noise
+
+    // // Access values
+    console.log("uwobject:", uwobject);
+
+    if (uwobject.underwriting_decision === "Ask more questions") {
+      navigate(`/reflex-questions`, {
+        state: { questions: uwobject.more_questions_details },
+      });
+    }else if (uwobject.underwriting_decision === "Accept") {
+      toast.success("Congratulations! Your proposal has been accepted.");
+    } else if (uwobject.underwriting_decision === "Reject") {
+      toast.error("We regret to inform you that your proposal has been rejected.");
+          } //else {
+            //navigate(`/uw-decision-summary`, {
+            // state: { uwobject: uwobject },
+            // });
+            //}
+
+  },
+    errorCallBack: (error) => { 
+      console.error("Error submitting proposal:", error);
+      toast.error("An error occurred while submitting your proposal. Please try again later.");
+    }
+  };
 
   const postProposal = {
     url: getHost() + `proposal/submit/`,
@@ -218,26 +253,40 @@ function deriveUwObject(response) {
     body: {},
 
     callBack: (result) => {
-      
-    // Convert to object
-    const uwobject = deriveUwObject(result.data.response);
 
-    // Access values
-    console.log("identified_health_profile=", uwobject.identified_health_profile);
-    console.log("medical_conditions=", uwobject.identified_health_profile.medical_conditions);
-    console.log("underwriting_decision=",uwobject.underwriting_decision);
-    console.log("uwobject:", typeof(uwobject), uwobject);
+      console.log("Raw response:", result.data.response);
+      console.log("underwriting_decision:", result.data.response.underwriting_decision);
+
+
+    // // Convert to object
+    // const uwobject = deriveUwObject(result.data.response);
+    const uwobject = result.data.response; // Assuming the API now returns a clean JSON object without the "json" prefix or other noise
+
+    // // Access values
+    // console.log("identified_health_profile=", uwobject.identified_health_profile);
+    // console.log("medical_conditions=", uwobject.identified_health_profile.medical_conditions);
+    // console.log("underwriting_decision=",uwobject.underwriting_decision);
+    console.log("uwobject:", uwobject);
 
     if (uwobject.underwriting_decision === "Ask more questions") {
       navigate(`/reflex-questions`, {
         state: { questions: uwobject.more_questions_details },
       });
-    }
+    }else if (uwobject.underwriting_decision === "Accept") {
+      toast.success("Congratulations! Your proposal has been accepted.");
+    } else if (uwobject.underwriting_decision === "Reject") {
+      toast.error("We regret to inform you that your proposal has been rejected.");
+          } //else {
+            //navigate(`/uw-decision-summary`, {
+            // state: { uwobject: uwobject },
+            // });
+            //}
 
   },
-
-    
-
+    errorCallBack: (error) => { 
+      console.error("Error submitting proposal:", error);
+      toast.error("An error occurred while submitting your proposal. Please try again later.");
+    }
   };
 
   const handleSubmit = () => {
@@ -313,9 +362,9 @@ function deriveUwObject(response) {
     };
 
 
-    console.log("Prepared Proposal Object:", proposal_object);
-
-    fireAjax({ ...postProposal, body: proposal_object });
+//    console.log("Prepared Proposal Object:", proposal_object);
+    fireAjax({ ...getClarity, body: proposal_object });
+//    fireAjax({ ...postProposal, body: proposal_object });
   };
 
   return (
