@@ -19,7 +19,7 @@ interface DisabilityDetailsProps {
   onChange: (data: DisabilityData) => void;
 }
 
-const percentageOptions = Array.from({ length: 101 }, (_, i) => String(i));
+const percentageOptions = [...Array.from({ length: 101 }, (_, i) => String(i)), "I do not know/ do not remember"];
 
 const DisabilityDetails = ({ data, onChange }: DisabilityDetailsProps) => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);

@@ -320,7 +320,7 @@ const Index = () => {
 
     // Q4 (medical index 3) - Disability: percentage required when Yes
     if (getEffectiveValue(3) === true) {
-      if (!disability.percentage) {
+      if (!disability.percentage || disability.hasCertificate === null) {
         incompleteParentIndices.set(offset + 3, { label: `Question ${offset + 4}`, questionText: questions[3].question });
       }
     }
