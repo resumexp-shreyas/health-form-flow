@@ -401,7 +401,7 @@ const handleSubmit = () => {
     }))
   };
 
-  fireAjax({ ...getClarity, body: proposal_object });
+  gotClarity ? fireAjax(postProposal, { ...postProposal, body: proposal_object }) :  fireAjax({ ...getClarity, body: proposal_object });
 };
 
 return (
