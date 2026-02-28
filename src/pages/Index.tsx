@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import ProposalQuestion from "@/components/ProposalQuestion";
 import MedicalHistoryDetails, { type MedicalHistoryDetailsRef } from "@/components/MedicalHistoryDetails";
 import HospitalizationDetails, { type HospitalizationData } from "@/components/HospitalizationDetails";
+import TobaccoDetails from "@/components/TobaccoDetails";
 import PersonalInfoFields from "@/components/PersonalInfoFields";
 import ProgressBar from "@/components/ProgressBar";
 import { ShieldCheck } from "lucide-react";
@@ -10,6 +11,19 @@ import { fireAjax, getHost } from "../assets/Karma";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
+
+const lifestyleQuestions = [
+  {
+    category: "Tobacco Consumption",
+    question: "Do you consume tobacco products?",
+    detailPrompt: "",
+  },
+  {
+    category: "Alcohol Consumption",
+    question: "Do you consume alcohol?",
+    detailPrompt: "",
+  },
+];
 
 const questions = [
   {
@@ -56,6 +70,10 @@ const Index = () => {
   const medicalHistoryRef = useRef<MedicalHistoryDetailsRef>(null);
   const [age, setAge] = useState("");
   const [gender, setGender] = useState("");
+  const [lifestyleAnswers, setLifestyleAnswers] = useState<Answer[]>(
+    lifestyleQuestions.map(() => ({ value: null, details: "" }))
+  );
+  const [tobaccoForms, setTobaccoForms] = useState<string[]>([]);
   const [answers, setAnswers] = useState<Answer[]>(
     questions.map(() => ({ value: null, details: "" }))
   );
@@ -94,8 +112,23 @@ const Index = () => {
     return answers[index].value;
   };
 
-  // answered count uses effective values
-  const answered = questions.filter((_, i) => getEffectiveValue(i) !== null).length;
+  // answered count uses effective values (lifestyle + medical)
+  const lifestyleAnswered = lifestyleAnswers.filter((a) => a.value !== null).length;
+  const medicalAnswered = questions.filter((_, i) => getEffectiveValue(i) !== null).length;
+  const answered = lifestyleAnswered + medicalAnswered;
+  const totalQuestions = lifestyleQuestions.length + questions.length;
+
+  const updateLifestyleAnswer = (index: number, value: boolean) => {
+    setLifestyleAnswers((prev) => {
+      const next = [...prev];
+      next[index] = { ...next[index], value };
+      // Clear tobacco forms when tobacco answer changes to No
+      if (index === 0 && !value) {
+        setTobaccoForms([]);
+      }
+      return next;
+    });
+  };
 
   const updateAnswer = (index: number, value: boolean) => {
     setAnswers((prev) => {
@@ -299,21 +332,42 @@ function deriveUwObject(response) {
       return;
     }
     // Collect which parent questions have issues (unanswered main or incomplete sub-questions)
-    const incompleteParentIndices = new Set<number>();
+    // We use a map of { globalIndex => { label, questionText } } for unified error reporting
+    const allQuestions = [
+      ...lifestyleQuestions.map((q, i) => ({ ...q, globalIndex: i })),
+      ...questions.map((q, i) => ({ ...q, globalIndex: lifestyleQuestions.length + i })),
+    ];
+    const incompleteParentIndices = new Map<number, { label: string; questionText: string }>();
 
-    // Check unanswered main questions
-    questions.forEach((_, i) => {
-      if (getEffectiveValue(i) === null) incompleteParentIndices.add(i);
+    // Check lifestyle questions
+    lifestyleQuestions.forEach((q, i) => {
+      const gi = i;
+      if (lifestyleAnswers[i].value === null) {
+        incompleteParentIndices.set(gi, { label: `Question ${gi + 1}`, questionText: q.question });
+      }
     });
 
-    // Check Q1 medical history sub-questions
+    // Check tobacco sub-question: if Yes but no forms selected
+    if (lifestyleAnswers[0].value === true && tobaccoForms.length === 0) {
+      incompleteParentIndices.set(0, { label: "Question 1", questionText: lifestyleQuestions[0].question });
+    }
+
+    // Check unanswered medical main questions
+    const offset = lifestyleQuestions.length;
+    questions.forEach((q, i) => {
+      if (getEffectiveValue(i) === null) {
+        incompleteParentIndices.set(offset + i, { label: `Question ${offset + i + 1}`, questionText: q.question });
+      }
+    });
+
+    // Check Q1 (medical) sub-questions
     if (getEffectiveValue(0) === true) {
       if (!medicalHistory.condition.trim() || !medicalHistory.yearOfDiagnosis || !medicalHistory.currentStatus) {
-        incompleteParentIndices.add(0);
+        incompleteParentIndices.set(offset + 0, { label: `Question ${offset + 1}`, questionText: questions[0].question });
       }
     }
 
-    // Check Q2 hospitalization sub-questions
+    // Check Q2 (medical) hospitalization sub-questions
     if (getEffectiveValue(1) === true) {
       if (
         hospitalization.reasons.length === 0 ||
@@ -321,20 +375,20 @@ function deriveUwObject(response) {
         !hospitalization.monthsAgo ||
         !hospitalization.outcome
       ) {
-        incompleteParentIndices.add(1);
+        incompleteParentIndices.set(offset + 1, { label: `Question ${offset + 2}`, questionText: questions[1].question });
       }
       if (hospitalization.reasons.includes("Other (please specify)") && !hospitalization.reasonOther.trim()) {
-        incompleteParentIndices.add(1);
+        incompleteParentIndices.set(offset + 1, { label: `Question ${offset + 2}`, questionText: questions[1].question });
       }
       if (hospitalization.outcome === "Other (please specify)" && !hospitalization.outcomeOther.trim()) {
-        incompleteParentIndices.add(1);
+        incompleteParentIndices.set(offset + 1, { label: `Question ${offset + 2}`, questionText: questions[1].question });
       }
     }
 
-    // Check Q3-Q4 details
+    // Check Q3-Q4 (medical) details
     answers.forEach((a, i) => {
       if (i > 1 && getEffectiveValue(i) === true && a.details.trim() === "") {
-        incompleteParentIndices.add(i);
+        incompleteParentIndices.set(offset + i, { label: `Question ${offset + i + 1}`, questionText: questions[i].question });
       }
     });
 
@@ -343,8 +397,8 @@ function deriveUwObject(response) {
       return;
     }
     if (incompleteParentIndices.size === 1) {
-      const idx = Array.from(incompleteParentIndices)[0];
-      toast.error(`Please answer Question ${idx + 1}: ${questions[idx].question}`);
+      const entry = Array.from(incompleteParentIndices.values())[0];
+      toast.error(`Please answer ${entry.label}: ${entry.questionText}`);
       return;
     }
     toast.success("Proposal submitted successfully!");
@@ -365,6 +419,17 @@ function deriveUwObject(response) {
 
     let proposal_object = {
       age, gender,
+      lifestyle: [
+        {
+          question: lifestyleQuestions[0].question,
+          answer: lifestyleAnswers[0].value === true ? "Yes" : "No",
+          ...(lifestyleAnswers[0].value === true ? { details: { "Tobacco form(s)": tobaccoForms.join(", ") } } : {}),
+        },
+        {
+          question: lifestyleQuestions[1].question,
+          answer: lifestyleAnswers[1].value === true ? "Yes" : "No",
+        },
+      ],
       answers: answers.map((a, i) => ({
         question: questions[i].question,
         answer: a.value === true ? "Yes" : "No",
@@ -398,7 +463,7 @@ function deriveUwObject(response) {
 
         {/* Progress */}
         <div className="mb-6">
-          <ProgressBar answered={answered} total={questions.length} />
+          <ProgressBar answered={answered} total={totalQuestions} />
         </div>
 
         {/* Personal Info */}
@@ -409,12 +474,37 @@ function deriveUwObject(response) {
           onGenderChange={setGender}
         />
 
-        {/* Questions */}
+        {/* Lifestyle Questions */}
         <div className="space-y-4">
+          {lifestyleQuestions.map((q, i) => (
+            <ProposalQuestion
+              key={`lifestyle-${i}`}
+              number={i + 1}
+              category={q.category}
+              question={q.question}
+              detailPrompt={q.detailPrompt}
+              value={lifestyleAnswers[i].value}
+              details=""
+              onAnswer={(v) => updateLifestyleAnswer(i, v)}
+              onDetailsChange={() => {}}
+              {...(i === 0 && {
+                customDetails: (
+                  <TobaccoDetails
+                    selectedForms={tobaccoForms}
+                    onChange={setTobaccoForms}
+                  />
+                ),
+              })}
+            />
+          ))}
+        </div>
+
+        {/* Medical Questions */}
+        <div className="mt-4 space-y-4">
           {questions.map((q, i) => (
             <ProposalQuestion
-              key={i}
-              number={i + 1}
+              key={`medical-${i}`}
+              number={lifestyleQuestions.length + i + 1}
               category={q.category}
               question={q.question}
               detailPrompt={q.detailPrompt}
