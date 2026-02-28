@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { toast } from "sonner";
 import ProposalQuestion from "@/components/ProposalQuestion";
-import MedicalHistoryDetails from "@/components/MedicalHistoryDetails";
+import MedicalHistoryDetails, { type MedicalHistoryDetailsRef } from "@/components/MedicalHistoryDetails";
 import HospitalizationDetails, { type HospitalizationData } from "@/components/HospitalizationDetails";
 import PersonalInfoFields from "@/components/PersonalInfoFields";
 import ProgressBar from "@/components/ProgressBar";
@@ -53,6 +53,7 @@ interface MedicalHistoryData {
 
 const Index = () => {
   const navigate = useNavigate();
+  const medicalHistoryRef = useRef<MedicalHistoryDetailsRef>(null);
   const [age, setAge] = useState("");
   const [gender, setGender] = useState("");
   const [answers, setAnswers] = useState<Answer[]>(
@@ -290,6 +291,9 @@ function deriveUwObject(response) {
   };
 
   const handleSubmit = () => {
+    // Flush any pending text in the condition input to chips before validation
+    medicalHistoryRef.current?.flushPendingInput();
+
     if (!age.trim() || !gender) {
       toast.error("Please provide your age and gender.");
       return;
@@ -414,6 +418,7 @@ function deriveUwObject(response) {
               {...(i === 0 && {
                 customDetails: (
                   <MedicalHistoryDetails
+                    ref={medicalHistoryRef}
                     data={medicalHistory}
                     onChange={setMedicalHistory}
                   />
