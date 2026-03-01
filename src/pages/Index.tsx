@@ -89,6 +89,7 @@ const Index = () => {
     currentStatus: "",
   });
   const [hospitalization, setHospitalization] = useState<HospitalizationData>({
+    hospitalizationType: [],
     reasons: [],
     reasonOther: "",
     yearsAgo: "",
@@ -320,6 +321,9 @@ const handleSubmit = () => {
 
   // Q2 (medical index 1) hospitalization sub-questions — only reasons is mandatory now
   if (getEffectiveValue(1) === true) {
+    if (hospitalization.hospitalizationType.length === 0) {
+      incompleteParentIndices.set(offset + 1, { label: `Question ${offset + 2}`, questionText: questions[1].question });
+    }
     if (hospitalization.reasons.length === 0) {
       incompleteParentIndices.set(offset + 1, { label: `Question ${offset + 2}`, questionText: questions[1].question });
     }
@@ -368,6 +372,7 @@ const handleSubmit = () => {
   };
 
   let hospitalizationUsable = {
+    "Type of hospitalization": hospitalization.hospitalizationType.join(", ") || "N/A",
     "Reason(s) for hospitalization/surgery": hospitalization.reasons.join(", ") + (hospitalization.reasons.includes("Other (please specify)") ? ` (${hospitalization.reasonOther})` : ""),
     "Time since hospitalization/surgery": hospitalization.yearsAgo || hospitalization.monthsAgo ? `${hospitalization.yearsAgo || "0"} year(s) and ${hospitalization.monthsAgo || "0"} month(s) ago` : "N/A",
     "Outcome": hospitalization.outcome ? (hospitalization.outcome + (hospitalization.outcome === "Other (please specify)" ? ` (${hospitalization.outcomeOther})` : "")) : "N/A",
