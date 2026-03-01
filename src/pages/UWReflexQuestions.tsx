@@ -28,8 +28,21 @@ const UWReflexQuestions = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const uwData = location.state?.uwData;
-  const questions: UWQuestion[] =
-    uwData?.refer_to_uwr_details?.suggested_questions || [];
+  const rawQuestions = uwData?.refer_to_uwr_details?.suggested_questions || [];
+  
+  // Normalize question fields to handle varying API response shapes
+  const questions: UWQuestion[] = rawQuestions.map((q: any, idx: number) => ({
+    question_sequence_number: q.question_sequence_number ?? q.sequence_number ?? q.seq ?? (idx + 1),
+    question_text: q.question_text ?? q.question ?? q.text ?? "",
+    answer_format: q.answer_format ?? q.format ?? q.type ?? "Free text",
+    range_start: q.range_start ?? null,
+    range_end: q.range_end ?? null,
+    options: q.options ?? q.dropdown_options ?? [],
+  }));
+
+  console.log("UW Reflex Questions - raw data:", JSON.stringify(rawQuestions, null, 2));
+  console.log("UW Reflex Questions - normalized:", JSON.stringify(questions, null, 2));
+
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
