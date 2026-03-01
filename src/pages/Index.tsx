@@ -67,7 +67,7 @@ interface Answer {
 
 interface MedicalHistoryData {
   condition: string;
-  yearOfDiagnosis: string;
+  yearOfDiagnosis: Record<string, string>;
   currentStatus: string;
 }
 
@@ -85,7 +85,7 @@ const Index = () => {
   );
   const [medicalHistory, setMedicalHistory] = useState<MedicalHistoryData>({
     condition: "",
-    yearOfDiagnosis: "",
+    yearOfDiagnosis: {},
     currentStatus: "",
   });
   const [hospitalization, setHospitalization] = useState<HospitalizationData>({
@@ -314,7 +314,9 @@ const handleSubmit = () => {
 
   // Q1 (medical index 0) sub-questions
   if (getEffectiveValue(0) === true) {
-    if (!medicalHistory.condition.trim() || !medicalHistory.yearOfDiagnosis || !medicalHistory.currentStatus) {
+    const conditions = medicalHistory.condition.split("||").filter(Boolean);
+    const allYearsFilled = conditions.length > 0 && conditions.every(c => medicalHistory.yearOfDiagnosis[c]);
+    if (!medicalHistory.condition.trim() || !allYearsFilled || !medicalHistory.currentStatus) {
       incompleteParentIndices.set(offset + 0, { label: `Question ${offset + 1}`, questionText: questions[0].question });
     }
   }
@@ -377,9 +379,10 @@ const handleSubmit = () => {
       toast.success("Proposal submitted successfully!");
     }
 
+    const conditionsList = medicalHistory.condition.split("||").filter(Boolean);
     let medicalHistoryUsable = {
     "Medical condition": medicalHistory.condition,
-    "Year Of diagnosis": medicalHistory.yearOfDiagnosis,
+    "Year Of diagnosis": conditionsList.map(c => `${c}: ${medicalHistory.yearOfDiagnosis[c] || "N/A"}`).join("; "),
     "Current Status": medicalHistory.currentStatus
   };
 
