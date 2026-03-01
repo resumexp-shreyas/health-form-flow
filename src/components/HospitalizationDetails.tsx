@@ -235,7 +235,7 @@ const HospitalizationDetails = ({ data, onChange, gender, disabledTypes = [] }: 
               </div>
             ))}
         </div>
-        {data.reasons.includes("Other, specified seperately") && (
+        {data.reasons.includes("Other, specified separately") && (
           <Input
             placeholder="Specify other reason..."
             value={data.reasonOther}
