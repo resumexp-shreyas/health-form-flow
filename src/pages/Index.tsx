@@ -75,6 +75,7 @@ const Index = () => {
   const navigate = useNavigate();
   const medicalHistoryRef = useRef<MedicalHistoryDetailsRef>(null);
   const [age, setAge] = useState("");
+  const [ageInMonths, setAgeInMonths] = useState("");
   const [gender, setGender] = useState("");
   const [lifestyleAnswers, setLifestyleAnswers] = useState<Answer[]>(
     lifestyleQuestions.map(() => ({ value: null, details: "" }))
@@ -143,8 +144,17 @@ const Index = () => {
     return answers[index].value;
   };
 
+  // Age-based logic
+  const ageNum = age === "" ? null : Number(age);
+  const isMinor = ageNum !== null && ageNum <= 18;
+
+  // For minors, tobacco & alcohol are auto-No
+  const effectiveLifestyleAnswers = isMinor
+    ? lifestyleAnswers.map(() => ({ value: false, details: "" }))
+    : lifestyleAnswers;
+
   // answered count uses effective values (lifestyle + medical)
-  const lifestyleAnswered = lifestyleAnswers.filter((a) => a.value !== null).length;
+  const lifestyleAnswered = isMinor ? lifestyleQuestions.length : lifestyleAnswers.filter((a) => a.value !== null).length;
   const medicalAnswered = questions.filter((_, i) => getEffectiveValue(i) !== null).length;
   const answered = lifestyleAnswered + medicalAnswered;
   const totalQuestions = lifestyleQuestions.length + questions.length;
@@ -305,19 +315,25 @@ const handleSubmit = () => {
     toast.error("Please provide your age and gender.");
     return;
   }
+  if (age === "0" && !ageInMonths) {
+    toast.error("Please select age in months.");
+    return;
+  }
 
   const incompleteParentIndices = new Map<number, { label: string; questionText: string }>();
 
-  // Check lifestyle questions
-  lifestyleQuestions.forEach((q, i) => {
-    if (lifestyleAnswers[i].value === null) {
-      incompleteParentIndices.set(i, { label: `Question ${i + 1}`, questionText: q.question });
-    }
-  });
+  // Check lifestyle questions (skip for minors — auto-No)
+  if (!isMinor) {
+    lifestyleQuestions.forEach((q, i) => {
+      if (lifestyleAnswers[i].value === null) {
+        incompleteParentIndices.set(i, { label: `Question ${i + 1}`, questionText: q.question });
+      }
+    });
 
-  // Tobacco sub-question
-  if (lifestyleAnswers[0].value === true && tobaccoForms.length === 0) {
-    incompleteParentIndices.set(0, { label: "Question 1", questionText: lifestyleQuestions[0].question });
+    // Tobacco sub-question
+    if (lifestyleAnswers[0].value === true && tobaccoForms.length === 0) {
+      incompleteParentIndices.set(0, { label: "Question 1", questionText: lifestyleQuestions[0].question });
+    }
   }
 
   // Check unanswered medical main questions
@@ -418,17 +434,18 @@ const handleSubmit = () => {
     "Certificate uploaded": disability.certificateFile ? "Yes" : "No",
   };
 
-  let proposal_object = {
+  let proposal_object: Record<string, any> = {
     age, gender,
+    ...(age === "0" ? { ageInMonths } : {}),
     lifestyle: [
       {
         question: lifestyleQuestions[0].question,
-        answer: lifestyleAnswers[0].value === true ? "Yes" : "No",
-        ...(lifestyleAnswers[0].value === true ? { details: { "Tobacco form(s)": tobaccoForms.join(", ") } } : {}),
+        answer: effectiveLifestyleAnswers[0].value === true ? "Yes" : "No",
+        ...(effectiveLifestyleAnswers[0].value === true ? { details: { "Tobacco form(s)": tobaccoForms.join(", ") } } : {}),
       },
       {
         question: lifestyleQuestions[1].question,
-        answer: lifestyleAnswers[1].value === true ? "Yes" : "No",
+        answer: effectiveLifestyleAnswers[1].value === true ? "Yes" : "No",
       },
     ],
     answers: answers.map((a, i) => ({
@@ -470,35 +487,39 @@ return (
       <PersonalInfoFields
         age={age}
         gender={gender}
+        ageInMonths={ageInMonths}
         onAgeChange={setAge}
         onGenderChange={setGender}
+        onAgeInMonthsChange={setAgeInMonths}
       />
 
-      {/* Lifestyle Questions */}
-      <div className="space-y-4">
-        {lifestyleQuestions.map((q, i) => (
-          <ProposalQuestion
-            key={`lifestyle-${i}`}
-            number={i + 1}
-            category={q.category}
-            question={q.question}
-            detailPrompt={q.detailPrompt}
-            value={lifestyleAnswers[i].value}
-            details=""
-            onAnswer={(v) => updateLifestyleAnswer(i, v)}
-            onDetailsChange={() => { }}
-            {...(i === 0 && {
-              customDetails: (
-                <TobaccoDetails
-                  selectedForms={tobaccoForms}
-                  onChange={setTobaccoForms}
-                />
-              ),
-            })}
-            {...(i === 1 && { hideDetails: true })}
-          />
-        ))}
-      </div>
+      {/* Lifestyle Questions — hidden for minors (age ≤ 18) */}
+      {!isMinor && (
+        <div className="space-y-4">
+          {lifestyleQuestions.map((q, i) => (
+            <ProposalQuestion
+              key={`lifestyle-${i}`}
+              number={i + 1}
+              category={q.category}
+              question={q.question}
+              detailPrompt={q.detailPrompt}
+              value={lifestyleAnswers[i].value}
+              details=""
+              onAnswer={(v) => updateLifestyleAnswer(i, v)}
+              onDetailsChange={() => { }}
+              {...(i === 0 && {
+                customDetails: (
+                  <TobaccoDetails
+                    selectedForms={tobaccoForms}
+                    onChange={setTobaccoForms}
+                  />
+                ),
+              })}
+              {...(i === 1 && { hideDetails: true })}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Medical Questions */}
       <div className="mt-4 space-y-4">
