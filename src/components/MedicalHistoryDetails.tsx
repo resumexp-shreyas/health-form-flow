@@ -259,71 +259,59 @@ const MedicalHistoryDetails = forwardRef<MedicalHistoryDetailsRef, MedicalHistor
         </div>
       </div>
 
-      {/* Year of diagnosis – one per condition */}
+      {/* Combined table for Year of Diagnosis & Current Status */}
       {chips.length > 0 && (
-        <div className="space-y-3">
-          <label className="text-xs font-medium text-muted-foreground">
-            Year of diagnosis
-          </label>
-          {chips.map((chip) => (
-            <div key={chip} className="flex items-center gap-3">
-              <span className="text-sm text-foreground truncate min-w-0 flex-1">{chip}</span>
-              <Select
-                value={data.yearOfDiagnosis[chip] || ""}
-                onValueChange={(v) =>
-                  onChange({
-                    ...data,
-                    yearOfDiagnosis: { ...data.yearOfDiagnosis, [chip]: v },
-                  })
-                }
-              >
-                <SelectTrigger className="border-border bg-muted/50 text-sm w-[140px] shrink-0">
-                  <SelectValue placeholder="Select year" />
-                </SelectTrigger>
-                <SelectContent>
-                  {yearOptions.map((year) => (
-                    <SelectItem key={year} value={year}>
-                      {year}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Current status – one per condition */}
-      {chips.length > 0 && (
-        <div className="space-y-3">
-          <label className="text-xs font-medium text-muted-foreground">
-            Current status
-          </label>
-          {chips.map((chip) => (
-            <div key={chip} className="flex items-center gap-3">
-              <span className="text-sm text-foreground truncate min-w-0 flex-1">{chip}</span>
-              <Select
-                value={data.currentStatus[chip] || ""}
-                onValueChange={(v) =>
-                  onChange({
-                    ...data,
-                    currentStatus: { ...data.currentStatus, [chip]: v },
-                  })
-                }
-              >
-                <SelectTrigger className="border-border bg-muted/50 text-sm w-[260px] shrink-0">
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent>
-                  {statusOptions.map((status) => (
-                    <SelectItem key={status} value={status}>
-                      {status}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          ))}
+        <div className="rounded-md border border-border overflow-hidden">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border bg-muted/30">
+                <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground">Medical Condition</th>
+                <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground">Year of Diagnosis</th>
+                <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground">Current Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {chips.map((chip, i) => (
+                <tr key={chip} className={i < chips.length - 1 ? "border-b border-border" : ""}>
+                  <td className="px-3 py-2 text-sm text-foreground">{chip}</td>
+                  <td className="px-3 py-2">
+                    <Select
+                      value={data.yearOfDiagnosis[chip] || ""}
+                      onValueChange={(v) =>
+                        onChange({ ...data, yearOfDiagnosis: { ...data.yearOfDiagnosis, [chip]: v } })
+                      }
+                    >
+                      <SelectTrigger className="border-border bg-muted/50 text-sm w-[130px]">
+                        <SelectValue placeholder="Select year" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {yearOptions.map((year) => (
+                          <SelectItem key={year} value={year}>{year}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </td>
+                  <td className="px-3 py-2">
+                    <Select
+                      value={data.currentStatus[chip] || ""}
+                      onValueChange={(v) =>
+                        onChange({ ...data, currentStatus: { ...data.currentStatus, [chip]: v } })
+                      }
+                    >
+                      <SelectTrigger className="border-border bg-muted/50 text-sm w-[240px]">
+                        <SelectValue placeholder="Select status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {statusOptions.map((status) => (
+                          <SelectItem key={status} value={status}>{status}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </div>
