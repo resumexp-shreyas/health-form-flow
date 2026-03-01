@@ -429,7 +429,7 @@ const Index = () => {
 
     let hospitalizationUsable = {
       "Type of hospitalization": effectiveHospitalization.hospitalizationType.join(", ") || "N/A",
-      "Reason(s) for hospitalization/surgery": effectiveHospitalization.reasons.join(", ") + (effectiveHospitalization.reasons.includes("Other (please specify)") ? ` (${effectiveHospitalization.reasonOther})` : ""),
+      "Reason(s) for hospitalization/surgery": effectiveHospitalization.reasons.map(r => r === "Other, specified separately" && effectiveHospitalization.reasonOther ? effectiveHospitalization.reasonOther : r).join(", "),
       "Time since hospitalization/surgery": effectiveHospitalization.yearsAgo || effectiveHospitalization.monthsAgo ? `${effectiveHospitalization.yearsAgo || "0"} year(s) and ${effectiveHospitalization.monthsAgo || "0"} month(s) ago` : "N/A",
       "Outcome": effectiveHospitalization.outcome ? (effectiveHospitalization.outcome + (effectiveHospitalization.outcome === "Other (please specify)" ? ` (${effectiveHospitalization.outcomeOther})` : "")) : "N/A",
       "Has discharge records": effectiveHospitalization.hasDischargeRecords === true ? "Yes" : effectiveHospitalization.hasDischargeRecords === false ? "No" : "N/A",
