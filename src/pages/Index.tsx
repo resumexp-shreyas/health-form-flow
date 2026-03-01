@@ -259,115 +259,133 @@ const Index = () => {
   }
 
 
-  const handleAmbiguity = {
-    url: getHost() + `proposal/findambiguity/`,
-    method: "post",
-    body: {},
-    callBack: (result) => {
-      console.log("Raw response:", result.data.response);
-      const uwobject = result.data.response;
-      console.log("uwobject:", uwobject);
+  // Helper to build proposal_object from current state
+  const buildProposalObject = () => {
+    const conditionsList = medicalHistory.condition.split("||").filter(Boolean);
+    const medicalHistoryUsable = {
+      "Medical condition": medicalHistory.condition,
+      "Year Of diagnosis": conditionsList.map(c => `${c}: ${medicalHistory.yearOfDiagnosis[c] || "N/A"}`).join("; "),
+      "Current Status": conditionsList.map(c => `${c}: ${medicalHistory.currentStatus[c] || "N/A"}`).join("; ")
+    };
+    const hospitalizationUsable = {
+      "Type of hospitalization": effectiveHospitalization.hospitalizationType.join(", ") || "N/A",
+      "Reason(s) for hospitalization/surgery": effectiveHospitalization.reasons.map(r => r === "Other, specified separately" && effectiveHospitalization.reasonOther ? effectiveHospitalization.reasonOther : r).join(", "),
+      "Time since hospitalization/surgery": effectiveHospitalization.yearsAgo || effectiveHospitalization.monthsAgo ? `${effectiveHospitalization.yearsAgo || "0"} year(s) and ${effectiveHospitalization.monthsAgo || "0"} month(s) ago` : "N/A",
+      "Outcome": effectiveHospitalization.outcome === "Other (please specify)" && effectiveHospitalization.outcomeOther ? effectiveHospitalization.outcomeOther : (effectiveHospitalization.outcome || "N/A"),
+      "Has discharge records": effectiveHospitalization.hasDischargeRecords === true ? "Yes" : effectiveHospitalization.hasDischargeRecords === false ? "No" : "N/A",
+      "Past medical records uploaded": effectiveHospitalization.uploadedFiles.length > 0 ? "Yes" : "No"
+    };
+    const disabilityUsable = {
+      "Percentage of disability": disability.percentage ? `${disability.percentage}%` : "N/A",
+      "Disability certificate available": disability.hasCertificate === true ? "Yes" : disability.hasCertificate === false ? "No" : "N/A",
+      "Certificate uploaded": disability.certificateFile ? "Yes" : "No",
+    };
 
-      const hasAmbiguous = uwobject.ambiguous_conditions_to_clarify && uwobject.ambiguous_conditions_to_clarify.length > 0;
-
-      if (hasAmbiguous) {
-        console.warn("Ambiguous conditions to clarify:", uwobject.ambiguous_conditions_to_clarify);
-        setAmbiguousConditions(uwobject.ambiguous_conditions_to_clarify);
-        toast.info("Some conditions need clarification. Please review.");
-      }
-
-      if (!hasAmbiguous) {
-        toast.success("Proposal submitted successfully!");
-      }
-      setAmbiguityClear(true);
-    },
-    errorCallBack: (error) => {
-      console.error("Error submitting proposal:", error);
-      toast.error("An error occurred while submitting your proposal. Please try again later.");
-    }
+    return {
+      age, gender,
+      ...(age === "0" ? { ageInMonths } : {}),
+      lifestyle: [
+        {
+          question: lifestyleQuestions[0].question,
+          answer: lifestyleAnswers[0].value === true ? "Yes" : "No",
+          ...(lifestyleAnswers[0].value === true ? { details: { "Tobacco form(s)": tobaccoForms.join(", ") } } : {}),
+        },
+        {
+          question: lifestyleQuestions[1].question,
+          answer: lifestyleAnswers[1].value === true ? "Yes" : "No",
+        },
+      ],
+      answers: answers.map((a, i) => ({
+        question: questions[i].question,
+        answer: getEffectiveValue(i) === true ? "Yes" : "No",
+        ...(getEffectiveValue(i) === true && questions[i].category === "Medication/ Investigations/ Symptoms/ Treatment" ? { details: a.details } : {}),
+        ...(getEffectiveValue(i) === true && questions[i].category === "Medical History" ? { details: medicalHistoryUsable } : {}),
+        ...(getEffectiveValue(i) === true && questions[i].category === "Hospitalization & Surgery" ? { details: hospitalizationUsable } : {}),
+        ...(getEffectiveValue(i) === true && questions[i].category === "Disability" ? { details: disabilityUsable } : {}),
+        ...(getEffectiveValue(i) === true && questions[i].category === "Past insurance proposal history" ? { details: a.details } : {}),
+      }))
+    };
   };
 
-  const getClarity = {
-    url: getHost() + `proposal/getclarity/`,
-    method: "post",
-    body: {},
-    callBack: (result) => {
-      console.log("Raw response:", result.data.response);
-      const uwobject = result.data.response;
-      console.log("uwobject:", uwobject);
-
-      const hasDiscrepancies = uwobject.discrepancies_detected && uwobject.discrepancies_detected.length > 0;
-
-      if (hasDiscrepancies) {
-        console.warn("Discrepancies detected:", uwobject.discrepancies_detected);
-        setDiscrepancies(uwobject.discrepancies_detected.map((d: any) => d.clarification_question || d));
-        toast.error("We detected some discrepancies in your answers. Please review your responses and submit again.");
-      }
-
-      if (!hasDiscrepancies) {
-        toast.success("Proposal submitted successfully!");
-      }
-      //setGotClarity(true);
-      setDiscrepancyClear(true)
-      let proposal_object: Record<string, any> = {
-        age, gender,
-        ...(age === "0" ? { ageInMonths } : {}),
-        lifestyle: [
-          {
-            question: lifestyleQuestions[0].question,
-            answer: lifestyleAnswers[0].value === true ? "Yes" : "No",
-            ...(lifestyleAnswers[0].value === true ? { details: { "Tobacco form(s)": tobaccoForms.join(", ") } } : {}),
-          },
-          {
-            question: lifestyleQuestions[1].question,
-            answer: lifestyleAnswers[1].value === true ? "Yes" : "No",
-          },
-        ],
-        answers: answers.map((a, i) => ({
-          question: questions[i].question,
-          answer: getEffectiveValue(i) === true ? "Yes" : "No",
-          ...(getEffectiveValue(i) === true && questions[i].category === "Medication/ Investigations/ Symptoms/ Treatment" ? { details: a.details } : {}),
-          ...(getEffectiveValue(i) === true && questions[i].category === "Medical History" ? { details: medicalHistoryUsable } : {}),
-          ...(getEffectiveValue(i) === true && questions[i].category === "Hospitalization & Surgery" ? { details: hospitalizationUsable } : {}),
-          ...(getEffectiveValue(i) === true && questions[i].category === "Disability" ? { details: disabilityUsable } : {}),
-          ...(getEffectiveValue(i) === true && questions[i].category === "Past insurance proposal history" ? { details: a.details } : {}),
-        }))
-      };
-      fireAjax({ ...postProposal, body: proposal_object })
-    },
-    errorCallBack: (error) => {
-      console.error("Error submitting proposal:", error);
-      toast.error("An error occurred while submitting your proposal. Please try again later.");
-    }
+  // Step 3: Submit proposal
+  const submitProposal = (proposalObj: Record<string, any>) => {
+    fireAjax({
+      url: getHost() + `proposal/submit/`,
+      method: "post",
+      body: proposalObj,
+      callBack: (result) => {
+        console.log("Raw response:", result.data.response);
+        const uwobject = result.data.response;
+        console.log("uwobject:", uwobject);
+        if (uwobject.underwriting_decision === "Ask more questions") {
+          navigate(`/reflex-questions`, {
+            state: { questions: uwobject.more_questions_details },
+          });
+        } else if (uwobject.underwriting_decision === "Accept") {
+          toast.success("Congratulations! Your proposal has been accepted.");
+        } else if (uwobject.underwriting_decision === "Reject") {
+          toast.error("We regret to inform you that your proposal has been rejected.");
+        } else if (uwobject.underwriting_decision === "Refer to UWR" && uwobject.refer_to_uwr_details.suggested_questions && uwobject.refer_to_uwr_details.suggested_questions.length > 0) {
+          navigate(`/uw-reflex-questions`, {
+            state: { questions: uwobject.refer_to_uwr_details.suggested_questions },
+          });
+        }
+      },
+    });
   };
 
-  const postProposal = {
-    url: getHost() + `proposal/submit/`,
-    method: "post",
-    body: {},
-    callBack: (result) => {
-      console.log("Raw response:", result.data.response);
-      console.log("underwriting_decision:", result.data.response.underwriting_decision);
-      const uwobject = result.data.response;
-      console.log("uwobject:", uwobject);
-      if (uwobject.underwriting_decision === "Ask more questions") {
-        navigate(`/reflex-questions`, {
-          state: { questions: uwobject.more_questions_details },
-        });
-      } else if (uwobject.underwriting_decision === "Accept") {
-        toast.success("Congratulations! Your proposal has been accepted.");
-      } else if (uwobject.underwriting_decision === "Reject") {
-        toast.error("We regret to inform you that your proposal has been rejected.");
-      } else if (uwobject.underwriting_decision === "Refer to UWR" && uwobject.refer_to_uwr_details.suggested_questions && uwobject.refer_to_uwr_details.suggested_questions.length > 0) {
-        navigate(`/uw-reflex-questions`, {
-          state: { questions: uwobject.refer_to_uwr_details.suggested_questions },
-        });
-      }
-    },
-    errorCallBack: (error) => {
-      console.error("Error submitting proposal:", error);
-      toast.error("An error occurred while submitting your proposal. Please try again later.");
-    }
+  // Step 2: Check discrepancies, then auto-submit if clear
+  const checkDiscrepancy = (proposalObj: Record<string, any>) => {
+    fireAjax({
+      url: getHost() + `proposal/getclarity/`,
+      method: "post",
+      body: proposalObj,
+      callBack: (result) => {
+        console.log("Raw response:", result.data.response);
+        const uwobject = result.data.response;
+        console.log("uwobject:", uwobject);
+
+        const hasDiscrepancies = uwobject.discrepancies_detected && uwobject.discrepancies_detected.length > 0;
+
+        if (hasDiscrepancies) {
+          console.warn("Discrepancies detected:", uwobject.discrepancies_detected);
+          setDiscrepancies(uwobject.discrepancies_detected.map((d: any) => d.clarification_question || d));
+          setDiscrepancyClear(false);
+          toast.error("We detected some discrepancies in your answers. Please review and submit again.");
+        } else {
+          setDiscrepancyClear(true);
+          // No discrepancies — auto-submit
+          submitProposal(proposalObj);
+        }
+      },
+    });
+  };
+
+  // Step 1: Check ambiguities, then auto-check discrepancies if clear
+  const checkAmbiguity = (proposalObj: Record<string, any>) => {
+    fireAjax({
+      url: getHost() + `proposal/findambiguity/`,
+      method: "post",
+      body: proposalObj,
+      callBack: (result) => {
+        console.log("Raw response:", result.data.response);
+        const uwobject = result.data.response;
+        console.log("uwobject:", uwobject);
+
+        const hasAmbiguous = uwobject.ambiguous_conditions_to_clarify && uwobject.ambiguous_conditions_to_clarify.length > 0;
+
+        if (hasAmbiguous) {
+          console.warn("Ambiguous conditions to clarify:", uwobject.ambiguous_conditions_to_clarify);
+          setAmbiguousConditions(uwobject.ambiguous_conditions_to_clarify);
+          setAmbiguityClear(false);
+          toast.info("Some conditions need clarification. Please review.");
+        } else {
+          setAmbiguityClear(true);
+          // No ambiguities — auto-check discrepancies
+          checkDiscrepancy(proposalObj);
+        }
+      },
+    });
   };
 
   const handleSubmit = () => {
@@ -470,78 +488,16 @@ const Index = () => {
       return;
     }
 
-    if (gotClarity) {
-      toast.success("Proposal submitted successfully!");
+    const proposal_object = buildProposalObject();
+
+    // Flow: ambiguity check → discrepancy check → submit (each step auto-chains if clear)
+    if (!ambiguityClear) {
+      checkAmbiguity(proposal_object);
+    } else if (!discrepancyClear) {
+      checkDiscrepancy(proposal_object);
+    } else {
+      submitProposal(proposal_object);
     }
-
-    const conditionsList = medicalHistory.condition.split("||").filter(Boolean);
-    let medicalHistoryUsable = {
-      "Medical condition": medicalHistory.condition,
-      "Year Of diagnosis": conditionsList.map(c => `${c}: ${medicalHistory.yearOfDiagnosis[c] || "N/A"}`).join("; "),
-      "Current Status": conditionsList.map(c => `${c}: ${medicalHistory.currentStatus[c] || "N/A"}`).join("; ")
-    };
-
-    let hospitalizationUsable = {
-      "Type of hospitalization": effectiveHospitalization.hospitalizationType.join(", ") || "N/A",
-      "Reason(s) for hospitalization/surgery": effectiveHospitalization.reasons.map(r => r === "Other, specified separately" && effectiveHospitalization.reasonOther ? effectiveHospitalization.reasonOther : r).join(", "),
-      "Time since hospitalization/surgery": effectiveHospitalization.yearsAgo || effectiveHospitalization.monthsAgo ? `${effectiveHospitalization.yearsAgo || "0"} year(s) and ${effectiveHospitalization.monthsAgo || "0"} month(s) ago` : "N/A",
-      "Outcome": effectiveHospitalization.outcome === "Other (please specify)" && effectiveHospitalization.outcomeOther ? effectiveHospitalization.outcomeOther : (effectiveHospitalization.outcome || "N/A"),
-      "Has discharge records": effectiveHospitalization.hasDischargeRecords === true ? "Yes" : effectiveHospitalization.hasDischargeRecords === false ? "No" : "N/A",
-      "Past medical records uploaded": effectiveHospitalization.uploadedFiles.length > 0 ? "Yes" : "No"
-    };
-
-    let disabilityUsable = {
-      "Percentage of disability": disability.percentage ? `${disability.percentage}%` : "N/A",
-      "Disability certificate available": disability.hasCertificate === true ? "Yes" : disability.hasCertificate === false ? "No" : "N/A",
-      "Certificate uploaded": disability.certificateFile ? "Yes" : "No",
-    };
-
-    let proposal_object: Record<string, any> = {
-      age, gender,
-      ...(age === "0" ? { ageInMonths } : {}),
-      lifestyle: [
-        {
-          question: lifestyleQuestions[0].question,
-          answer: lifestyleAnswers[0].value === true ? "Yes" : "No",
-          ...(lifestyleAnswers[0].value === true ? { details: { "Tobacco form(s)": tobaccoForms.join(", ") } } : {}),
-        },
-        {
-          question: lifestyleQuestions[1].question,
-          answer: lifestyleAnswers[1].value === true ? "Yes" : "No",
-        },
-      ],
-      answers: answers.map((a, i) => ({
-        question: questions[i].question,
-        answer: getEffectiveValue(i) === true ? "Yes" : "No",
-        ...(getEffectiveValue(i) === true && questions[i].category === "Medication/ Investigations/ Symptoms/ Treatment" ? { details: a.details } : {}),
-        ...(getEffectiveValue(i) === true && questions[i].category === "Medical History" ? { details: medicalHistoryUsable } : {}),
-        ...(getEffectiveValue(i) === true && questions[i].category === "Hospitalization & Surgery" ? { details: hospitalizationUsable } : {}),
-        ...(getEffectiveValue(i) === true && questions[i].category === "Disability" ? { details: disabilityUsable } : {}),
-        ...(getEffectiveValue(i) === true && questions[i].category === "Past insurance proposal history" ? { details: a.details } : {}),
-      }))
-    };
-
-
-    //handleAmbiguity - fireajax with handleAmbiguity API and pass proposal_object. In response we will get if there is any ambiguity to clarify.
-
-    //Check if there is any ambiguity? If No then trigger getClarity API which will return if there is any discrepancy to clarify. 
-    //If there is any ambiguity then show the AmbiguousClarification component with the questions to clarify. Once user answer those questions and clicks Confirm & Continue.
-    //Now there is no ambiguity. Now its time to check for discrepancy. onClick to "Confirm & Continue", Trigger getClarity API which will return if there is any discrepancy to clarify.
-    //Once discrepancy is clarified then trigger postProposal API to submit the proposal.
-
-    //Ambiguity clear? if No fireAjax({ ...handleAmbiguity, body: proposal_object }) ////---- If Yes, Continue...
-    if (ambiguityClear === false) {
-      fireAjax({ ...handleAmbiguity, body: proposal_object });
-      return;
-    } else if (discrepancyClear === false) { //Discrepancy clear? if No fireAjax({ ...getClarity, body: proposal_object })    ////---- If Yes, Continue...
-      fireAjax({ ...getClarity, body: proposal_object })
-      return;
-    }
-
-    fireAjax({ ...postProposal, body: proposal_object })
-
-
-    //gotClarity ? fireAjax({ ...postProposal, body: proposal_object }) : fireAjax({ ...getClarity, body: proposal_object });
   };
 
   return (
@@ -741,12 +697,15 @@ const Index = () => {
                 };
               });
               setAmbiguousConditions([]);
-              // setGotClarity(true);//Old logic: once ambiguity is clear, we can submit the proposal. New logic: once ambiguity is clear, we need to check for discrepancy. If there is no discrepancy then we can submit the proposal.
               setAmbiguityClear(true);
-              // trigger getClarity API to check if there is any discrepancy after ambiguity is clarified
-              //handleSubmit will check the ambiguityClear and discrepancyClear state to decide whether to call getClarity API or postProposal API
-              handleSubmit();
-              toast.success("Conditions clarified.");
+              toast.success("Conditions clarified. Checking for discrepancies...");
+              // Directly chain to discrepancy check (can't rely on state update within same tick)
+              // We need to build proposal with the UPDATED medical history
+              // Since setMedicalHistory is async, we build it inline with the new values
+              setTimeout(() => {
+                const updatedProposal = buildProposalObject();
+                checkDiscrepancy(updatedProposal);
+              }, 100);
             }}
           />
         )}
