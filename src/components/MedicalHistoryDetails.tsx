@@ -58,7 +58,7 @@ function fuzzyMatch(text: string, query: string): boolean {
 
 const MedicalHistoryDetails = forwardRef<MedicalHistoryDetailsRef, MedicalHistoryDetailsProps>(({ data, onChange, age }, ref) => {
   const ageNum = age ? parseInt(age, 10) : 0;
-  const yearCount = ageNum > 0 ? ageNum : 5;
+  const yearCount = ageNum > 0 ? ageNum : 100;
   const yearOptions = Array.from({ length: yearCount }, (_, i) => String(currentYear - i));
   const [inputValue, setInputValue] = useState("");
   const [chips, setChips] = useState<string[]>(() =>
