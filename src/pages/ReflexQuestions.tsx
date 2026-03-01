@@ -229,12 +229,21 @@ const ReflexQuestions = () => {
             ))}
         </div>
 
-        <div className="mt-8 text-center">
+        <div className="mt-8 flex flex-col items-center gap-3">
           <button
             onClick={handleSubmit}
             className="rounded-lg bg-[hsl(var(--answer-active))] px-10 py-3 text-sm font-semibold text-[hsl(var(--answer-active-foreground))] shadow-sm transition-all hover:opacity-90 active:scale-[0.98]"
           >
             Submit Answers
+          </button>
+          <button
+            onClick={() => {
+              toast.success("We'll call you back for details.");
+              navigate("/");
+            }}
+            className="rounded-lg border border-border bg-card px-10 py-3 text-sm font-semibold text-muted-foreground shadow-sm transition-all hover:bg-muted active:scale-[0.98]"
+          >
+            Skip and call me back for details
           </button>
         </div>
       </div>
