@@ -26,6 +26,8 @@ export interface HospitalizationData {
 interface HospitalizationDetailsProps {
   data: HospitalizationData;
   onChange: (data: HospitalizationData) => void;
+  gender?: string;
+  disabledTypes?: string[];
 }
 
 const reasonOptions = [
@@ -70,7 +72,7 @@ const yearsOptions = Array.from({ length: 12 }, (_, i) =>
 );
 const monthsOptions = Array.from({ length: 12 }, (_, i) => String(i));
 
-const HospitalizationDetails = ({ data, onChange }: HospitalizationDetailsProps) => {
+const HospitalizationDetails = ({ data, onChange, gender, disabledTypes = [] }: HospitalizationDetailsProps) => {
   const fileInputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   const toggleReason = (reason: string) => {
@@ -133,6 +135,7 @@ const HospitalizationDetails = ({ data, onChange }: HospitalizationDetailsProps)
               <Checkbox
                 checked={data.hospitalizationType.includes(option)}
                 onCheckedChange={() => toggleHospitalizationType(option)}
+                disabled={disabledTypes.includes(option)}
               />
               <Label className="cursor-pointer text-sm text-card-foreground">
                 {option}
@@ -148,7 +151,9 @@ const HospitalizationDetails = ({ data, onChange }: HospitalizationDetailsProps)
           Reason (medical condition) — select all that apply
         </label>
         <div className="max-h-48 space-y-1.5 overflow-y-auto rounded-md border border-border bg-muted/50 p-3">
-          {reasonOptions.map((reason) => (
+          {reasonOptions
+            .filter((reason) => reason !== "Childbirth / delivery" || gender !== "Male")
+            .map((reason) => (
             <div key={reason} className="flex items-center gap-2">
               <Checkbox
                 id={`reason-${reason}`}

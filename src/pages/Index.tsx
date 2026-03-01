@@ -7,7 +7,7 @@ import DisabilityDetails, { type DisabilityData } from "@/components/DisabilityD
 import TobaccoDetails from "@/components/TobaccoDetails";
 import PersonalInfoFields from "@/components/PersonalInfoFields";
 import ProgressBar from "@/components/ProgressBar";
-import { ShieldCheck } from "lucide-react";
+import { ShieldCheck, X } from "lucide-react";
 import { fireAjax, getHost } from "../assets/Karma";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
@@ -114,13 +114,28 @@ const Index = () => {
     "I'm recovering from surgery",
   ];
   const statusValues = Object.values(medicalHistory.currentStatus);
-  const isSurgeryRelated = statusValues.some(s => surgeryStatuses.includes(s));
+  const hasSurgeryPlanned = statusValues.some(s => s === "I have a surgery planned");
+  const hasRecoveringFromSurgery = statusValues.some(s => s === "I'm recovering from surgery");
+  const isSurgeryRelated = hasSurgeryPlanned || hasRecoveringFromSurgery;
 
   const autoAnswerNote = isSurgeryRelated
-    ? statusValues.includes("I have a surgery planned")
+    ? hasSurgeryPlanned
       ? "Answered Yes as we noted you have a planned surgery."
       : "Answered Yes as we noted you are recovering from surgery."
     : null;
+
+  // Auto-select hospitalization type based on surgery status
+  const autoHospitalizationType = (() => {
+    const types: string[] = [];
+    if (hasRecoveringFromSurgery) types.push("Past hospitalization");
+    if (hasSurgeryPlanned) types.push("Planned hospitalization");
+    return types;
+  })();
+
+  // Sync hospitalization type when surgery status changes
+  const effectiveHospitalization = isSurgeryRelated
+    ? { ...hospitalization, hospitalizationType: [...new Set([...hospitalization.hospitalizationType, ...autoHospitalizationType])] }
+    : hospitalization;
 
   // Effective value for Q2 (index 1): force Yes if surgery-related
   const getEffectiveValue = (index: number) => {
@@ -325,28 +340,28 @@ const handleSubmit = () => {
 
   // Q2 (medical index 1) hospitalization sub-questions — only reasons is mandatory now
   if (getEffectiveValue(1) === true) {
-    if (hospitalization.hospitalizationType.length === 0) {
+    if (effectiveHospitalization.hospitalizationType.length === 0) {
       incompleteParentIndices.set(offset + 1, { label: `Question ${offset + 2}`, questionText: questions[1].question });
     }
-    if (hospitalization.reasons.length === 0) {
+    if (effectiveHospitalization.reasons.length === 0) {
       incompleteParentIndices.set(offset + 1, { label: `Question ${offset + 2}`, questionText: questions[1].question });
     }
-    if (hospitalization.reasons.includes("Other (please specify)") && !hospitalization.reasonOther.trim()) {
+    if (effectiveHospitalization.reasons.includes("Other (please specify)") && !effectiveHospitalization.reasonOther.trim()) {
       incompleteParentIndices.set(offset + 1, { label: `Question ${offset + 2}`, questionText: questions[1].question });
     }
     // When "Past hospitalization" is selected, timing and outcome are mandatory
-    if (hospitalization.hospitalizationType.includes("Past hospitalization")) {
-      if (!hospitalization.yearsAgo && !hospitalization.monthsAgo) {
+    if (effectiveHospitalization.hospitalizationType.includes("Past hospitalization")) {
+      if (!effectiveHospitalization.yearsAgo && !effectiveHospitalization.monthsAgo) {
         incompleteParentIndices.set(offset + 1, { label: `Question ${offset + 2}`, questionText: questions[1].question });
       }
-      if (!hospitalization.outcome) {
+      if (!effectiveHospitalization.outcome) {
         incompleteParentIndices.set(offset + 1, { label: `Question ${offset + 2}`, questionText: questions[1].question });
       }
-      if (hospitalization.outcome === "Other (please specify)" && !hospitalization.outcomeOther.trim()) {
+      if (effectiveHospitalization.outcome === "Other (please specify)" && !effectiveHospitalization.outcomeOther.trim()) {
         incompleteParentIndices.set(offset + 1, { label: `Question ${offset + 2}`, questionText: questions[1].question });
       }
     }
-    if (!hospitalization.hospitalizationType.includes("Past hospitalization") && hospitalization.outcome === "Other (please specify)" && !hospitalization.outcomeOther.trim()) {
+    if (!effectiveHospitalization.hospitalizationType.includes("Past hospitalization") && effectiveHospitalization.outcome === "Other (please specify)" && !effectiveHospitalization.outcomeOther.trim()) {
       incompleteParentIndices.set(offset + 1, { label: `Question ${offset + 2}`, questionText: questions[1].question });
     }
   }
@@ -389,12 +404,12 @@ const handleSubmit = () => {
   };
 
   let hospitalizationUsable = {
-    "Type of hospitalization": hospitalization.hospitalizationType.join(", ") || "N/A",
-    "Reason(s) for hospitalization/surgery": hospitalization.reasons.join(", ") + (hospitalization.reasons.includes("Other (please specify)") ? ` (${hospitalization.reasonOther})` : ""),
-    "Time since hospitalization/surgery": hospitalization.yearsAgo || hospitalization.monthsAgo ? `${hospitalization.yearsAgo || "0"} year(s) and ${hospitalization.monthsAgo || "0"} month(s) ago` : "N/A",
-    "Outcome": hospitalization.outcome ? (hospitalization.outcome + (hospitalization.outcome === "Other (please specify)" ? ` (${hospitalization.outcomeOther})` : "")) : "N/A",
-    "Has discharge records": hospitalization.hasDischargeRecords === true ? "Yes" : hospitalization.hasDischargeRecords === false ? "No" : "N/A",
-    "Past medical records uploaded": hospitalization.uploadedFiles.length > 0 ? "Yes" : "No"
+    "Type of hospitalization": effectiveHospitalization.hospitalizationType.join(", ") || "N/A",
+    "Reason(s) for hospitalization/surgery": effectiveHospitalization.reasons.join(", ") + (effectiveHospitalization.reasons.includes("Other (please specify)") ? ` (${effectiveHospitalization.reasonOther})` : ""),
+    "Time since hospitalization/surgery": effectiveHospitalization.yearsAgo || effectiveHospitalization.monthsAgo ? `${effectiveHospitalization.yearsAgo || "0"} year(s) and ${effectiveHospitalization.monthsAgo || "0"} month(s) ago` : "N/A",
+    "Outcome": effectiveHospitalization.outcome ? (effectiveHospitalization.outcome + (effectiveHospitalization.outcome === "Other (please specify)" ? ` (${effectiveHospitalization.outcomeOther})` : "")) : "N/A",
+    "Has discharge records": effectiveHospitalization.hasDischargeRecords === true ? "Yes" : effectiveHospitalization.hasDischargeRecords === false ? "No" : "N/A",
+    "Past medical records uploaded": effectiveHospitalization.uploadedFiles.length > 0 ? "Yes" : "No"
   };
 
   let disabilityUsable = {
@@ -513,8 +528,10 @@ return (
             {...(i === 1 && {
               customDetails: (
                 <HospitalizationDetails
-                  data={hospitalization}
+                  data={effectiveHospitalization}
                   onChange={setHospitalization}
+                  gender={gender}
+                  disabledTypes={autoHospitalizationType}
                 />
               ),
             })}
@@ -538,20 +555,13 @@ return (
               {discrepancies.map((d, i) => (
                 <li key={i} className="flex items-start justify-between gap-2 rounded border border-destructive/20 bg-background p-3">
                   <span className="flex-1">{d}</span>
-                  <div className="flex shrink-0 gap-1">
-                    <button
-                      onClick={() => setDiscrepancies((prev) => prev.filter((_, idx) => idx !== i))}
-                      className="rounded px-2 py-1 text-xs font-medium bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors"
-                    >
-                      Close
-                    </button>
-                    <button
-                      onClick={() => setDiscrepancies((prev) => prev.filter((_, idx) => idx !== i))}
-                      className="rounded px-2 py-1 text-xs font-medium bg-muted text-muted-foreground hover:bg-muted/80 transition-colors"
-                    >
-                      Ignore
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => setDiscrepancies((prev) => prev.filter((_, idx) => idx !== i))}
+                    className="shrink-0 rounded-full p-1 text-destructive hover:bg-destructive/10 transition-colors"
+                    aria-label="Close"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
                 </li>
               ))}
             </ul>
