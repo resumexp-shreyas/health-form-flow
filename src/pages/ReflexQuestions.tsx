@@ -1,7 +1,7 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { toast } from "sonner";
-import { ShieldCheck } from "lucide-react";
+import { ShieldCheck, Loader2, AlertTriangle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -11,6 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { fireAjax, getHost } from "../assets/Karma";
 
 interface ReflexQuestion {
   question_sequence_number: number;
@@ -32,7 +33,10 @@ const ReflexQuestions = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const questions: ReflexQuestion[] = location.state?.questions || [];
+  const proposalObject: Record<string, any> = location.state?.proposalObject || {};
   const [answers, setAnswers] = useState<Record<number, string>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [apiError, setApiError] = useState<string | null>(null);
 
   if (questions.length === 0) {
     return (
@@ -54,16 +58,55 @@ const ReflexQuestions = () => {
     setAnswers((prev) => ({ ...prev, [seq]: value }));
   };
 
+  const allAnswered = questions.every(
+    (q) => answers[q.question_sequence_number]?.trim()
+  );
+
   const handleSubmit = () => {
-    const unanswered = questions.filter(
-      (q) => !answers[q.question_sequence_number]?.trim()
-    );
-    if (unanswered.length > 0) {
+    if (!allAnswered) {
       toast.error("Please answer all questions before submitting.");
       return;
     }
-    toast.success("Answers submitted successfully!");
-    console.log("Reflex answers:", answers);
+
+    const collectedAnswers = questions.map((q) => ({
+      question_sequence_number: q.question_sequence_number,
+      question_text: q.question_text,
+      answer: answers[q.question_sequence_number],
+    }));
+
+    setIsSubmitting(true);
+    setApiError(null);
+
+    fireAjax({
+      url: getHost() + `proposal/submitAdditionalQns/`,
+      method: "post",
+      body: {
+        ...proposalObject,
+        additional_qna: collectedAnswers,
+      },
+      callBack: (result: any) => {
+        setIsSubmitting(false);
+        if (result?.data?.response) {
+          const uwobject = result.data.response;
+          const summaryDecisions = ["Decline", "Accept standard", "Accept with waiting period"];
+
+          if (summaryDecisions.includes(uwobject.underwriting_decision)) {
+            navigate("/summary", { state: { uwData: uwobject } });
+          } else if (
+            uwobject.underwriting_decision === "Refer to UWR" &&
+            uwobject.refer_to_uwr_details?.suggested_questions?.length > 0
+          ) {
+            navigate("/uw-reflex-questions", { state: { uwData: uwobject } });
+          } else {
+            setApiError(
+              `Unexpected decision: "${uwobject.underwriting_decision}". Please contact support.`
+            );
+          }
+        } else {
+          setApiError("Submission failed. Please try again.");
+        }
+      },
+    });
   };
 
   const renderAnswerInput = (q: ReflexQuestion) => {
@@ -192,7 +235,7 @@ const ReflexQuestions = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-muted/30">
       <div className="mx-auto max-w-2xl px-4 py-10">
         <div className="mb-8 text-center">
           <div className="mb-3 inline-flex items-center justify-center rounded-full bg-primary/10 p-3">
@@ -209,19 +252,30 @@ const ReflexQuestions = () => {
         <div className="space-y-4">
           {questions
             .sort((a, b) => a.question_sequence_number - b.question_sequence_number)
-            .map((q) => (
+            .map((q, i) => (
               <div
                 key={q.question_sequence_number}
-                className="rounded-lg border border-border bg-card p-5 transition-all duration-200"
+                className="rounded-xl border border-border bg-card p-5 shadow-sm animate-fade-in"
+                style={{
+                  animationDelay: `${i * 0.08}s`,
+                  animationFillMode: "both",
+                }}
               >
                 <div className="flex items-start gap-4">
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-secondary text-sm font-semibold text-secondary-foreground">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
                     {q.question_sequence_number}
                   </span>
                   <div className="flex-1 space-y-3">
-                    <p className="text-sm font-medium leading-relaxed text-card-foreground">
-                      {q.question_text}
-                    </p>
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-medium leading-relaxed text-card-foreground">
+                        {q.question_text}
+                      </p>
+                      {questions.length > 1 && (
+                        <span className="ml-2 shrink-0 text-xs text-muted-foreground">
+                          {i + 1} of {questions.length}
+                        </span>
+                      )}
+                    </div>
                     {renderAnswerInput(q)}
                   </div>
                 </div>
@@ -229,12 +283,21 @@ const ReflexQuestions = () => {
             ))}
         </div>
 
+        {apiError && (
+          <div className="mt-4 flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+            <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+            <span>{apiError}</span>
+          </div>
+        )}
+
         <div className="mt-8 flex flex-col items-center gap-3">
           <button
             onClick={handleSubmit}
-            className="rounded-lg bg-[hsl(var(--answer-active))] px-10 py-3 text-sm font-semibold text-[hsl(var(--answer-active-foreground))] shadow-sm transition-all hover:opacity-90 active:scale-[0.98]"
+            disabled={!allAnswered || isSubmitting}
+            className="inline-flex items-center gap-2 rounded-lg bg-[hsl(var(--answer-active))] px-10 py-3 text-sm font-semibold text-[hsl(var(--answer-active-foreground))] shadow-sm transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Submit Answers
+            {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
+            {isSubmitting ? "Submitting…" : "Submit & Continue"}
           </button>
           <button
             onClick={() => {
