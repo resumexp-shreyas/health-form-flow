@@ -707,14 +707,41 @@ const Index = () => {
               });
               setAmbiguousConditions([]);
               setAmbiguityClear(true);
+              setIsSubmitting(true);
               toast.success("Conditions clarified. Checking for discrepancies...");
-              // Directly chain to discrepancy check (can't rely on state update within same tick)
-              // We need to build proposal with the UPDATED medical history
-              // Since setMedicalHistory is async, we build it inline with the new values
-              setTimeout(() => {
-                const updatedProposal = buildProposalObject();
-                checkDiscrepancy(updatedProposal);
-              }, 100);
+
+              // Build proposal inline with resolved values (can't rely on async setState)
+              const oldChips = medicalHistory.condition.split("||").filter(Boolean);
+              const resolvedChips = oldChips.map((chip) =>
+                selections[chip] !== undefined ? selections[chip] : chip
+              );
+              const resolvedYears: Record<string, string> = {};
+              const resolvedStatus: Record<string, string> = {};
+              for (const oldChip of oldChips) {
+                const newChip = selections[oldChip] !== undefined ? selections[oldChip] : oldChip;
+                if (medicalHistory.yearOfDiagnosis[oldChip]) resolvedYears[newChip] = medicalHistory.yearOfDiagnosis[oldChip];
+                if (medicalHistory.currentStatus[oldChip]) resolvedStatus[newChip] = medicalHistory.currentStatus[oldChip];
+              }
+
+              const resolvedCondition = resolvedChips.join("||");
+              const conditionsList = resolvedChips;
+              const medicalHistoryUsable = {
+                "Medical condition": resolvedCondition,
+                "Year Of diagnosis": conditionsList.map(c => `${c}: ${resolvedYears[c] || "N/A"}`).join("; "),
+                "Current Status": conditionsList.map(c => `${c}: ${resolvedStatus[c] || "N/A"}`).join("; ")
+              };
+
+              // Build proposal with resolved medical history
+              const updatedProposal = buildProposalObject();
+              // Override the medical history answer with resolved values
+              const medicalAnswerIdx = updatedProposal.answers.findIndex(
+                (a: any) => a.question === questions[0].question
+              );
+              if (medicalAnswerIdx !== -1 && updatedProposal.answers[medicalAnswerIdx].details) {
+                updatedProposal.answers[medicalAnswerIdx].details = medicalHistoryUsable;
+              }
+
+              checkDiscrepancy(updatedProposal);
             }}
           />
         )}
