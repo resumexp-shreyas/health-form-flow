@@ -604,9 +604,9 @@ const Index = () => {
           {discrepancies.length > 0 && (
             <div className="mb-4 rounded-xl border border-purple-200 bg-white p-4 text-sm shadow-sm">
               <div className="flex items-center gap-2 mb-3">
-                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-purple-100">
+                {/* <div className="flex h-6 w-6 items-center justify-center rounded-full bg-purple-100">
                   <AlertTriangle className="h-3.5 w-3.5 text-purple-600" />
-                </div>
+                </div> */}
                 <p className="font-semibold text-gray-900 tracking-wide text-xs uppercase">
                   Discrepancies Detected
                 </p>
@@ -617,10 +617,10 @@ const Index = () => {
 
               <ul className="space-y-2">
                 {discrepancies.map((d, i) => (
-                  <li
-                    key={i}
-                    className="flex items-start justify-between gap-2 rounded-lg border border-purple-100 bg-purple-50/40 p-3 transition-colors hover:bg-purple-50"
-                  >
+<li
+  key={i}
+  className="flex items-start justify-between gap-2 rounded-lg border border-red-100 bg-red-50/50 p-3 transition-colors hover:bg-red-50"
+>
                     <div className="flex gap-2 flex-1 items-start">
                       <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-purple-600 text-white text-[10px] font-bold">
                         {i + 1}
@@ -629,10 +629,10 @@ const Index = () => {
                     </div>
                     <button
                       onClick={() => setDiscrepancies((prev) => prev.filter((_, idx) => idx !== i))}
-                      className="shrink-0 rounded-full p-1 text-gray-400 hover:bg-purple-100 hover:text-purple-700 transition-colors"
+                      className="shrink-0 rounded-full p-1 bg-gray-200 hover:bg-gray-900 transition-colors"
                       aria-label="Close"
                     >
-                      <X className="h-4 w-4" />
+                      <X className="h-5 w-5 text-red-500 stroke-[2.5]" />
                     </button>
                   </li>
                 ))}
