@@ -10,6 +10,7 @@ import ProgressBar from "@/components/ProgressBar";
 import { ShieldCheck, X } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import AmbiguousClarification, { type AmbiguousCondition } from "@/components/AmbiguousClarification";
 import { fireAjax, getHost } from "../assets/Karma";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
@@ -109,6 +110,7 @@ const Index = () => {
   });
 
   const [discrepancies, setDiscrepancies] = useState<string[]>([]);
+  const [ambiguousConditions, setAmbiguousConditions] = useState<AmbiguousCondition[]>([]);
   const [gotClarity, setGotClarity] = useState<boolean>(false);
 
   // Auto-answer Q2 based on medical history current status
@@ -272,7 +274,8 @@ const Index = () => {
 
       if (hasAmbiguous) {
         console.warn("Ambiguous conditions to clarify:", uwobject.ambiguous_conditions_to_clarify);
-        toast.error("Some conditions need clarification. Please review and update your answers.");
+        setAmbiguousConditions(uwobject.ambiguous_conditions_to_clarify);
+        toast.info("Some conditions need clarification. Please review below.");
       }
 
       if (!hasDiscrepancies && !hasAmbiguous) {
@@ -621,10 +624,42 @@ return (
       </div>
 
       {/* Submit */}
+      {/* Ambiguous Condition Clarification */}
+      {ambiguousConditions.length > 0 && (
+        <AmbiguousClarification
+          items={ambiguousConditions}
+          onConfirm={(selections) => {
+            // Replace disclosed_term with selected standard term in medical history state
+            setMedicalHistory((prev) => {
+              const oldChips = prev.condition.split("||").filter(Boolean);
+              const newChips = oldChips.map((chip) =>
+                selections[chip] !== undefined ? selections[chip] : chip
+              );
+              const newYears: Record<string, string> = {};
+              const newStatus: Record<string, string> = {};
+              for (const oldChip of oldChips) {
+                const newChip = selections[oldChip] !== undefined ? selections[oldChip] : oldChip;
+                if (prev.yearOfDiagnosis[oldChip]) newYears[newChip] = prev.yearOfDiagnosis[oldChip];
+                if (prev.currentStatus[oldChip]) newStatus[newChip] = prev.currentStatus[oldChip];
+              }
+              return {
+                condition: newChips.join("||"),
+                yearOfDiagnosis: newYears,
+                currentStatus: newStatus,
+              };
+            });
+            setAmbiguousConditions([]);
+            setGotClarity(true);
+            toast.success("Conditions clarified. You can now submit.");
+          }}
+        />
+      )}
+
+      {/* Submit */}
       <div className="mt-8 text-center">
         <button
           onClick={handleSubmit}
-          disabled={discrepancies.length > 0}
+          disabled={discrepancies.length > 0 || ambiguousConditions.length > 0}
           className="rounded-lg bg-[hsl(var(--answer-active))] px-10 py-3 text-sm font-semibold text-[hsl(var(--answer-active-foreground))] shadow-sm transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Submit
