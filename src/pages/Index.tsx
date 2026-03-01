@@ -319,15 +319,15 @@ const Index = () => {
         console.log("Raw response:", result.data.response);
         const uwobject = result.data.response;
         console.log("uwobject:", uwobject);
-        if (uwobject.underwriting_decision === "Ask more questions") {
+
+        const summaryDecisions = ["Decline", "Accept standard", "Accept with waiting period"];
+        if (summaryDecisions.includes(uwobject.underwriting_decision)) {
+          navigate(`/summary`, { state: { uwData: uwobject } });
+        } else if (uwobject.underwriting_decision === "Ask more questions") {
           navigate(`/reflex-questions`, {
             state: { questions: uwobject.more_questions_details },
           });
-        } else if (uwobject.underwriting_decision === "Accept") {
-          toast.success("Congratulations! Your proposal has been accepted.");
-        } else if (uwobject.underwriting_decision === "Reject") {
-          toast.error("We regret to inform you that your proposal has been rejected.");
-        } else if (uwobject.underwriting_decision === "Refer to UWR" && uwobject.refer_to_uwr_details.suggested_questions && uwobject.refer_to_uwr_details.suggested_questions.length > 0) {
+        } else if (uwobject.underwriting_decision === "Refer to UWR" && uwobject.refer_to_uwr_details?.suggested_questions?.length > 0) {
           navigate(`/uw-reflex-questions`, {
             state: { questions: uwobject.refer_to_uwr_details.suggested_questions },
           });
