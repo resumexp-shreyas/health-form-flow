@@ -8,6 +8,8 @@ import TobaccoDetails from "@/components/TobaccoDetails";
 import PersonalInfoFields from "@/components/PersonalInfoFields";
 import ProgressBar from "@/components/ProgressBar";
 import { ShieldCheck, X } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { fireAjax, getHost } from "../assets/Karma";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
@@ -486,6 +488,31 @@ return (
       {/* Progress */}
       <div className="mb-6">
         <ProgressBar answered={answered} total={totalQuestions} />
+      </div>
+
+      {/* Answer No for all */}
+      <div className="mb-4 flex items-center gap-3 rounded-lg border border-border bg-card px-5 py-3">
+        <Switch
+          id="answer-no-all"
+          checked={
+            lifestyleAnswers.every((a) => a.value === false) &&
+            answers.every((_, i) => getEffectiveValue(i) === false)
+          }
+          onCheckedChange={(checked) => {
+            if (checked) {
+              setLifestyleAnswers((prev) => prev.map(() => ({ value: false, details: "" })));
+              setTobaccoForms([]);
+              setAnswers((prev) => prev.map(() => ({ value: false, details: "" })));
+            } else {
+              setLifestyleAnswers((prev) => prev.map(() => ({ value: null, details: "" })));
+              setTobaccoForms([]);
+              setAnswers((prev) => prev.map(() => ({ value: null, details: "" })));
+            }
+          }}
+        />
+        <Label htmlFor="answer-no-all" className="text-sm font-medium text-card-foreground cursor-pointer">
+          Answer No for all questions
+        </Label>
       </div>
 
       {/* Personal Info */}
