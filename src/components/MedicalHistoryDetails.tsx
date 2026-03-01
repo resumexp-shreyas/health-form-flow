@@ -64,6 +64,16 @@ const MedicalHistoryDetails = forwardRef<MedicalHistoryDetailsRef, MedicalHistor
   const [chips, setChips] = useState<string[]>(() =>
     data.condition ? data.condition.split("||").filter(Boolean) : []
   );
+  // Sync chips when parent data.condition changes externally (e.g. ambiguous clarification)
+  useEffect(() => {
+    const externalChips = data.condition ? data.condition.split("||").filter(Boolean) : [];
+    setChips(prev => {
+      const prevJoined = prev.join("||");
+      const extJoined = externalChips.join("||");
+      return prevJoined !== extJoined ? externalChips : prev;
+    });
+  }, [data.condition]);
+
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [highlightIndex, setHighlightIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
