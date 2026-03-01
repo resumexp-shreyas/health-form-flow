@@ -7,7 +7,7 @@ import DisabilityDetails, { type DisabilityData } from "@/components/DisabilityD
 import TobaccoDetails from "@/components/TobaccoDetails";
 import PersonalInfoFields from "@/components/PersonalInfoFields";
 import ProgressBar from "@/components/ProgressBar";
-import { ShieldCheck, X, AlertTriangle } from "lucide-react";
+import { ShieldCheck, X, AlertTriangle, Loader2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import AmbiguousClarification, { type AmbiguousCondition } from "@/components/AmbiguousClarification";
@@ -80,6 +80,7 @@ const Index = () => {
   const [ambiguityClear, setAmbiguityClear] = useState(false);
   const [discrepancyClear, setDiscrepancyClear] = useState(false);
   ////////////////////////
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const medicalHistoryRef = useRef<MedicalHistoryDetailsRef>(null);
   const [age, setAge] = useState("");
   const [ageInMonths, setAgeInMonths] = useState("");
@@ -314,6 +315,7 @@ const Index = () => {
       method: "post",
       body: proposalObj,
       callBack: (result) => {
+        setIsSubmitting(false);
         console.log("Raw response:", result.data.response);
         const uwobject = result.data.response;
         console.log("uwobject:", uwobject);
@@ -348,6 +350,7 @@ const Index = () => {
         const hasDiscrepancies = uwobject.discrepancies_detected && uwobject.discrepancies_detected.length > 0;
 
         if (hasDiscrepancies) {
+          setIsSubmitting(false);
           console.warn("Discrepancies detected:", uwobject.discrepancies_detected);
           setDiscrepancies(uwobject.discrepancies_detected.map((d: any) => d.clarification_question || d));
           setDiscrepancyClear(false);
@@ -375,6 +378,7 @@ const Index = () => {
         const hasAmbiguous = uwobject.ambiguous_conditions_to_clarify && uwobject.ambiguous_conditions_to_clarify.length > 0;
 
         if (hasAmbiguous) {
+          setIsSubmitting(false);
           console.warn("Ambiguous conditions to clarify:", uwobject.ambiguous_conditions_to_clarify);
           setAmbiguousConditions(uwobject.ambiguous_conditions_to_clarify);
           setAmbiguityClear(false);
@@ -489,6 +493,7 @@ const Index = () => {
     }
 
     const proposal_object = buildProposalObject();
+    setIsSubmitting(true);
 
     // Flow: ambiguity check → discrepancy check → submit (each step auto-chains if clear)
     if (!ambiguityClear) {
@@ -714,10 +719,11 @@ const Index = () => {
         <div className="mt-8 text-center">
           <button
             onClick={handleSubmit}
-            disabled={discrepancies.length > 0 || ambiguousConditions.length > 0}
-            className="rounded-lg bg-[hsl(var(--answer-active))] px-10 py-3 text-sm font-semibold text-[hsl(var(--answer-active-foreground))] shadow-sm transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={discrepancies.length > 0 || ambiguousConditions.length > 0 || isSubmitting}
+            className="inline-flex items-center gap-2 rounded-lg bg-[hsl(var(--answer-active))] px-10 py-3 text-sm font-semibold text-[hsl(var(--answer-active-foreground))] shadow-sm transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Submit
+            {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
+            {isSubmitting ? "Processing…" : "Submit"}
           </button>
         </div>
       </div>
