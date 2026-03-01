@@ -663,7 +663,11 @@ const Index = () => {
                       <span className="text-gray-800 leading-snug">{d}</span>
                     </div>
                     <button
-                      onClick={() => setDiscrepancies((prev) => prev.filter((_, idx) => idx !== i))}
+                      onClick={() => setDiscrepancies((prev) => {
+                        const updated = prev.filter((_, idx) => idx !== i);
+                        if (updated.length === 0) setDiscrepancyClear(true);
+                        return updated;
+                      })}
                       className="shrink-0 rounded-full p-1 bg-gray-200 hover:bg-gray-900 transition-colors"
                       aria-label="Close"
                     >
