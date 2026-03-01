@@ -96,7 +96,7 @@ const reasonOptions = [
   { display: "Observation for chest pain / short stay", value: "Observation for chest pain" },
   { display: "Post‑operative complication / re‑admission", value: "Post‑operative complication" },
   { display: "Diagnostic admission for tests / investigations", value: "Diagnostic admission for tests / investigations" },
-  { display: "Other (please specify)", value: "Other, specified seperately" }
+  { display: "Other (please specify)", value: "Other, specified separately" }
 ];
 
 const outcomeOptions = [
