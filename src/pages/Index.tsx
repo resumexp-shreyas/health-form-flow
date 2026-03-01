@@ -330,7 +330,19 @@ const handleSubmit = () => {
     if (hospitalization.reasons.includes("Other (please specify)") && !hospitalization.reasonOther.trim()) {
       incompleteParentIndices.set(offset + 1, { label: `Question ${offset + 2}`, questionText: questions[1].question });
     }
-    if (hospitalization.outcome === "Other (please specify)" && !hospitalization.outcomeOther.trim()) {
+    // When "Past hospitalization" is selected, timing and outcome are mandatory
+    if (hospitalization.hospitalizationType.includes("Past hospitalization")) {
+      if (!hospitalization.yearsAgo && !hospitalization.monthsAgo) {
+        incompleteParentIndices.set(offset + 1, { label: `Question ${offset + 2}`, questionText: questions[1].question });
+      }
+      if (!hospitalization.outcome) {
+        incompleteParentIndices.set(offset + 1, { label: `Question ${offset + 2}`, questionText: questions[1].question });
+      }
+      if (hospitalization.outcome === "Other (please specify)" && !hospitalization.outcomeOther.trim()) {
+        incompleteParentIndices.set(offset + 1, { label: `Question ${offset + 2}`, questionText: questions[1].question });
+      }
+    }
+    if (!hospitalization.hospitalizationType.includes("Past hospitalization") && hospitalization.outcome === "Other (please specify)" && !hospitalization.outcomeOther.trim()) {
       incompleteParentIndices.set(offset + 1, { label: `Question ${offset + 2}`, questionText: questions[1].question });
     }
   }
