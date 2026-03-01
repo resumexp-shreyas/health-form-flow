@@ -28,53 +28,53 @@ const PersonalInfoFields = ({
 }: PersonalInfoFieldsProps) => {
   return (
     <div className="rounded-lg border border-border bg-card p-5">
-      <div className="flex gap-8">
+      <div className="flex gap-8 items-start">
 
         {/* Age */}
-        <div className="w-1/2 space-y-2 pl-12">
+        <div className="space-y-2 pl-12">
           <label className="text-sm font-medium text-card-foreground">
             Age (in years)<span className="text-destructive">*</span>
           </label>
-          <div className="flex items-center gap-4">
-            <Input
-              type="number"
-              inputMode="numeric"
-              min={0}
-              max={120}
-              value={age}
-              onChange={(e) => {
-                const v = e.target.value;
-                if (v === "" || (Number(v) >= 0 && Number(v) <= 120)) {
-                  onAgeChange(v);
-                  if (v !== "0") onAgeInMonthsChange("");
-                }
-              }}
-              className="w-[72px] text-center"
-            />
-            {age === "0" && (
-              <div className="flex items-center gap-2">
-                <label className="text-sm font-medium text-card-foreground whitespace-nowrap">
-                  Age (in months)<span className="text-destructive">*</span>
-                </label>
-                <Select value={ageInMonths} onValueChange={onAgeInMonthsChange}>
-                  <SelectTrigger className="w-[100px]">
-                    <SelectValue placeholder="Months" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Array.from({ length: 12 }, (_, i) => (
-                      <SelectItem key={i} value={String(i)}>
-                        {i} month{i !== 1 ? "s" : ""}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-          </div>
+          <Input
+            type="number"
+            inputMode="numeric"
+            min={0}
+            max={120}
+            value={age}
+            onChange={(e) => {
+              const v = e.target.value;
+              if (v === "" || (Number(v) >= 0 && Number(v) <= 120)) {
+                onAgeChange(v);
+                if (v !== "0") onAgeInMonthsChange("");
+              }
+            }}
+            className="w-[72px] text-center"
+          />
         </div>
 
+        {/* Age in months — only when age is 0 */}
+        {age === "0" && (
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-card-foreground">
+              Age (in months)<span className="text-destructive">*</span>
+            </label>
+            <Select value={ageInMonths} onValueChange={onAgeInMonthsChange}>
+              <SelectTrigger className="w-[120px]">
+                <SelectValue placeholder="Select" />
+              </SelectTrigger>
+              <SelectContent>
+                {Array.from({ length: 12 }, (_, i) => (
+                  <SelectItem key={i} value={String(i)}>
+                    {i} month{i !== 1 ? "s" : ""}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
         {/* Gender */}
-        <div className="w-1/2 space-y-2">
+        <div className="space-y-2">
           <label className="text-sm font-medium text-card-foreground">
             Gender <span className="text-destructive">*</span>
           </label>
