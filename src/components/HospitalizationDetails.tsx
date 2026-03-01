@@ -136,7 +136,7 @@ const HospitalizationDetails = ({ data, onChange }: HospitalizationDetailsProps)
       {/* When */}
       <div className="space-y-1.5">
       <label className="text-xs font-medium text-muted-foreground">
-          When were you hospitalized? (if applicable)
+          When were you hospitalized? (applicable in case of hospitalization in past)
         </label>
         <div className="flex items-center gap-2">
           <Select
@@ -173,7 +173,7 @@ const HospitalizationDetails = ({ data, onChange }: HospitalizationDetailsProps)
       {/* Outcome */}
       <div className="space-y-1.5">
         <label className="text-xs font-medium text-muted-foreground">
-          Outcome of hospitalization/ surgery (if applicable)
+          Outcome of hospitalization/ surgery (applicable in case of hospitalization in past)
         </label>
         <Select
           value={data.outcome}
