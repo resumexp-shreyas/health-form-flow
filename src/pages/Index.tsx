@@ -325,7 +325,7 @@ const Index = () => {
           navigate(`/summary`, { state: { uwData: uwobject } });
         } else if (uwobject.underwriting_decision === "Ask more questions") {
           navigate(`/reflex-questions`, {
-            state: { questions: uwobject.more_questions_details },
+            state: { questions: uwobject.more_questions_details, proposalObject: proposalObj },
           });
         } else if (uwobject.underwriting_decision === "Refer to UWR" && uwobject.refer_to_uwr_details?.suggested_questions?.length > 0) {
           navigate(`/uw-reflex-questions`, {
