@@ -121,9 +121,9 @@ const HospitalizationDetails = ({ data, onChange }: HospitalizationDetailsProps)
     <div className="space-y-4">
       {/* Hospitalization Type */}
       <div className="space-y-3">
-        <p className="text-sm font-medium text-card-foreground">
+        {/* <p className="text-sm font-medium text-card-foreground">
           Type of hospitalization
-        </p>
+        </p> */}
         <div className="flex gap-4">
           {hospitalizationTypeOptions.map((option) => (
             <label
