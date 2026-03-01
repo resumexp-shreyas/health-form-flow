@@ -30,7 +30,30 @@ interface HospitalizationDetailsProps {
   disabledTypes?: string[];
 }
 
-const reasonOptions = [
+const reasonOptions_value = [
+  "Accident or injury",
+  "Appendicitis / appendectomy",
+  "Childbirth / delivery",
+  "Heart problem",
+  "Stroke or neurological event",
+  "Respiratory infection",
+  "Severe infection",
+  "Gastrointestinal illness",
+  "Abdominal surgery",
+  "Kidney problem",
+  "Liver problem",
+  "Diabetes complication",
+  "Cancer treatment or complication",
+  "Planned elective surgery",
+  "Emergency surgery",
+  "Mental health admission",
+  "Observation for chest pain",
+  "Post‑operative complication",
+  "Diagnostic admission for tests / investigations",
+  "Other, specified seperately",
+];
+
+const reasonOptions_display = [
   "Accident or injury (fracture, trauma)",
   "Appendicitis / appendectomy",
   "Childbirth / delivery",
@@ -51,6 +74,29 @@ const reasonOptions = [
   "Post‑operative complication / re‑admission",
   "Diagnostic admission for tests / investigations",
   "Other (please specify)",
+];
+
+const reasonOptions = [
+  { display: "Accident or injury (fracture, trauma)", value: "Accident or injury" },
+  { display: "Appendicitis / appendectomy", value: "Appendicitis / appendectomy" },
+  { display: "Childbirth / delivery", value: "Childbirth / delivery" },
+  { display: "Heart problem (heart attack, chest pain, angina)", value: "Heart problem" },
+  { display: "Stroke or neurological event", value: "Stroke or neurological event" },
+  { display: "Respiratory infection / pneumonia", value: "Respiratory infection" },
+  { display: "Severe infection / sepsis", value: "Severe infection" },
+  { display: "Gastrointestinal illness (ulcer, bleeding, severe gastritis)", value: "Gastrointestinal illness" },
+  { display: "Abdominal surgery (e.g., bowel surgery)", value: "Abdominal surgery" },
+  { display: "Kidney problem / urinary tract complication", value: "Kidney problem" },
+  { display: "Liver problem / hepatitis", value: "Liver problem" },
+  { display: "Diabetes complication (e.g., diabetic ketoacidosis)", value: "Diabetes complication" },
+  { display: "Cancer treatment or complication", value: "Cancer treatment or complication" },
+  { display: "Planned elective surgery (orthopaedic, ENT, etc.)", value: "Planned elective surgery" },
+  { display: "Emergency surgery (unscheduled)", value: "Emergency surgery" },
+  { display: "Mental health admission (depression, psychosis)", value: "Mental health admission" },
+  { display: "Observation for chest pain / short stay", value: "Observation for chest pain" },
+  { display: "Post‑operative complication / re‑admission", value: "Post‑operative complication" },
+  { display: "Diagnostic admission for tests / investigations", value: "Diagnostic admission for tests / investigations" },
+  { display: "Other (please specify)", value: "Other, specified seperately" }
 ];
 
 const outcomeOptions = [
@@ -150,7 +196,7 @@ const HospitalizationDetails = ({ data, onChange, gender, disabledTypes = [] }: 
         <label className="text-xs font-medium text-muted-foreground">
           Reason (medical condition) — select all that apply
         </label>
-        <div className="max-h-48 space-y-1.5 overflow-y-auto rounded-md border border-border bg-muted/50 p-3">
+        {/* <div className="max-h-48 space-y-1.5 overflow-y-auto rounded-md border border-border bg-muted/50 p-3">
           {reasonOptions
             .filter((reason) => reason !== "Childbirth / delivery" || gender !== "Male")
             .map((reason) => (
@@ -168,8 +214,28 @@ const HospitalizationDetails = ({ data, onChange, gender, disabledTypes = [] }: 
               </Label>
             </div>
           ))}
+        </div> */}
+
+        <div className="max-h-48 space-y-1.5 overflow-y-auto rounded-md border border-border bg-muted/50 p-3">
+          {reasonOptions
+            .filter((reason) => reason.display !== "Childbirth / delivery" || gender !== "Male")
+            .map((reason) => (
+              <div key={reason.value} className="flex items-center gap-2">
+                <Checkbox
+                  id={`reason-${reason}`}
+                  checked={data.reasons.includes(reason.value)}
+                  onCheckedChange={() => toggleReason(reason.value)}
+                />
+                <Label
+                  htmlFor={`reason-${reason}`}
+                  className="text-sm font-normal leading-tight text-card-foreground cursor-pointer"
+                >
+                  {reason.display}
+                </Label>
+              </div>
+            ))}
         </div>
-        {data.reasons.includes("Other (please specify)") && (
+        {data.reasons.includes("Other, specified seperately") && (
           <Input
             placeholder="Specify other reason..."
             value={data.reasonOther}
@@ -181,71 +247,71 @@ const HospitalizationDetails = ({ data, onChange, gender, disabledTypes = [] }: 
 
       {/* When - only visible if Past hospitalization is selected */}
       {data.hospitalizationType.includes("Past hospitalization") && (
-      <div className="space-y-1.5">
-      <label className="text-xs font-medium text-muted-foreground">
-          When were you hospitalized? (applicable in case of hospitalization in past)
-        </label>
-        <div className="flex items-center gap-2">
-          <Select
-            value={data.yearsAgo}
-            onValueChange={(v) => onChange({ ...data, yearsAgo: v })}
-          >
-            <SelectTrigger className="w-24 border-border bg-muted/50 text-sm">
-              <SelectValue placeholder="Years" />
-            </SelectTrigger>
-            <SelectContent>
-              {yearsOptions.map((y) => (
-                <SelectItem key={y} value={y}>{y}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <span className="text-sm text-muted-foreground">Years and </span>
-          <Select
-            value={data.monthsAgo}
-            onValueChange={(v) => onChange({ ...data, monthsAgo: v })}
-          >
-            <SelectTrigger className="w-24 border-border bg-muted/50 text-sm">
-              <SelectValue placeholder="Months" />
-            </SelectTrigger>
-            <SelectContent>
-              {monthsOptions.map((m) => (
-                <SelectItem key={m} value={m}>{m}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <span className="text-sm text-muted-foreground"> Months ago</span>
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-muted-foreground">
+            When were you hospitalized? (applicable in case of hospitalization in past)
+          </label>
+          <div className="flex items-center gap-2">
+            <Select
+              value={data.yearsAgo}
+              onValueChange={(v) => onChange({ ...data, yearsAgo: v })}
+            >
+              <SelectTrigger className="w-24 border-border bg-muted/50 text-sm">
+                <SelectValue placeholder="Years" />
+              </SelectTrigger>
+              <SelectContent>
+                {yearsOptions.map((y) => (
+                  <SelectItem key={y} value={y}>{y}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <span className="text-sm text-muted-foreground">Years and </span>
+            <Select
+              value={data.monthsAgo}
+              onValueChange={(v) => onChange({ ...data, monthsAgo: v })}
+            >
+              <SelectTrigger className="w-24 border-border bg-muted/50 text-sm">
+                <SelectValue placeholder="Months" />
+              </SelectTrigger>
+              <SelectContent>
+                {monthsOptions.map((m) => (
+                  <SelectItem key={m} value={m}>{m}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <span className="text-sm text-muted-foreground"> Months ago</span>
+          </div>
         </div>
-      </div>
       )}
 
       {/* Outcome - only visible if Past hospitalization is selected */}
       {data.hospitalizationType.includes("Past hospitalization") && (
-      <div className="space-y-1.5">
-        <label className="text-xs font-medium text-muted-foreground">
-          Outcome of hospitalization/ surgery (applicable in case of hospitalization in past)
-        </label>
-        <Select
-          value={data.outcome}
-          onValueChange={(v) => onChange({ ...data, outcome: v })}
-        >
-          <SelectTrigger className="border-border bg-muted/50 text-sm">
-            <SelectValue placeholder="Select outcome" />
-          </SelectTrigger>
-          <SelectContent>
-            {outcomeOptions.map((o) => (
-              <SelectItem key={o} value={o}>{o}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {data.outcome === "Other (please specify)" && (
-          <Input
-            placeholder="Specify other outcome..."
-            value={data.outcomeOther}
-            onChange={(e) => onChange({ ...data, outcomeOther: e.target.value })}
-            className="mt-1 border-border bg-muted/50 text-sm placeholder:text-muted-foreground/60"
-          />
-        )}
-      </div>
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-muted-foreground">
+            Outcome of hospitalization/ surgery (applicable in case of hospitalization in past)
+          </label>
+          <Select
+            value={data.outcome}
+            onValueChange={(v) => onChange({ ...data, outcome: v })}
+          >
+            <SelectTrigger className="border-border bg-muted/50 text-sm">
+              <SelectValue placeholder="Select outcome" />
+            </SelectTrigger>
+            <SelectContent>
+              {outcomeOptions.map((o) => (
+                <SelectItem key={o} value={o}>{o}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {data.outcome === "Other (please specify)" && (
+            <Input
+              placeholder="Specify other outcome..."
+              value={data.outcomeOther}
+              onChange={(e) => onChange({ ...data, outcomeOther: e.target.value })}
+              className="mt-1 border-border bg-muted/50 text-sm placeholder:text-muted-foreground/60"
+            />
+          )}
+        </div>
       )}
       {/* Discharge Summary */}
       <div className="space-y-3">
@@ -256,22 +322,20 @@ const HospitalizationDetails = ({ data, onChange, gender, disabledTypes = [] }: 
           <button
             type="button"
             onClick={() => onChange({ ...data, hasDischargeRecords: true, uploadedFiles: data.uploadedFiles.length === 0 ? [undefined as unknown as File] : data.uploadedFiles })}
-            className={`rounded-md px-5 py-2 text-sm font-medium transition-all duration-150 ${
-              data.hasDischargeRecords === true
+            className={`rounded-md px-5 py-2 text-sm font-medium transition-all duration-150 ${data.hasDischargeRecords === true
                 ? "bg-[hsl(var(--answer-active))] text-[hsl(var(--answer-active-foreground))] shadow-sm"
                 : "border border-border bg-card text-muted-foreground hover:bg-secondary"
-            }`}
+              }`}
           >
             Yes
           </button>
           <button
             type="button"
             onClick={() => onChange({ ...data, hasDischargeRecords: false, uploadedFiles: [] })}
-            className={`rounded-md px-5 py-2 text-sm font-medium transition-all duration-150 ${
-              data.hasDischargeRecords === false
+            className={`rounded-md px-5 py-2 text-sm font-medium transition-all duration-150 ${data.hasDischargeRecords === false
                 ? "bg-[hsl(var(--answer-active))] text-[hsl(var(--answer-active-foreground))] shadow-sm"
                 : "border border-border bg-card text-muted-foreground hover:bg-secondary"
-            }`}
+              }`}
           >
             No
           </button>
