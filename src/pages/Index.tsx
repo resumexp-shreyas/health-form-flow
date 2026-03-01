@@ -254,7 +254,8 @@ const Index = () => {
   }
 
   const getClarity = {
-    url: getHost() + `proposal/getclarity/`,
+//    url: getHost() + `proposal/getclarity/`,
+    url: getHost() + `proposal/findambiguity/`,
     method: "post",
     body: {},
     callBack: (result) => {
@@ -319,6 +320,7 @@ const Index = () => {
   };
 
   const handleSubmit = () => {
+
     medicalHistoryRef.current?.flushPendingInput();
 
     if (!age.trim() || !gender) {
@@ -416,6 +418,7 @@ const Index = () => {
       toast.error(`Please answer ${entry.label} and it's sub-questions before submitting.`);
       return;
     }
+    
     if (gotClarity) {
       toast.success("Proposal submitted successfully!");
     }
