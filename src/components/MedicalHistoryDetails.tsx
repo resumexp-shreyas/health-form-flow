@@ -14,7 +14,7 @@ import medicalConditions from "@/data/medicalConditions";
 
 interface MedicalHistoryData {
   condition: string;
-  yearOfDiagnosis: string;
+  yearOfDiagnosis: Record<string, string>;
   currentStatus: string;
 }
 
@@ -83,7 +83,13 @@ const MedicalHistoryDetails = forwardRef<MedicalHistoryDetailsRef, MedicalHistor
   const syncChips = useCallback(
     (next: string[]) => {
       setChips(next);
-      onChange({ ...data, condition: next.join("||") });
+      // Clean up yearOfDiagnosis keys for removed conditions
+      const nextSet = new Set(next);
+      const cleanedYears: Record<string, string> = {};
+      for (const key of Object.keys(data.yearOfDiagnosis)) {
+        if (nextSet.has(key)) cleanedYears[key] = data.yearOfDiagnosis[key];
+      }
+      onChange({ ...data, condition: next.join("||"), yearOfDiagnosis: cleanedYears });
     },
     [data, onChange]
   );
@@ -250,27 +256,39 @@ const MedicalHistoryDetails = forwardRef<MedicalHistoryDetailsRef, MedicalHistor
         </div>
       </div>
 
-      {/* Year of diagnosis */}
-      <div className="space-y-1.5">
-        <label className="text-xs font-medium text-muted-foreground">
-          Year of diagnosis
-        </label>
-        <Select
-          value={data.yearOfDiagnosis}
-          onValueChange={(v) => onChange({ ...data, yearOfDiagnosis: v })}
-        >
-          <SelectTrigger className="border-border bg-muted/50 text-sm">
-            <SelectValue placeholder="Select year" />
-          </SelectTrigger>
-          <SelectContent>
-            {yearOptions.map((year) => (
-              <SelectItem key={year} value={year}>
-                {year}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      {/* Year of diagnosis – one per condition */}
+      {chips.length > 0 && (
+        <div className="space-y-3">
+          <label className="text-xs font-medium text-muted-foreground">
+            Year of diagnosis
+          </label>
+          {chips.map((chip) => (
+            <div key={chip} className="flex items-center gap-3">
+              <span className="text-sm text-foreground truncate min-w-0 flex-1">{chip}</span>
+              <Select
+                value={data.yearOfDiagnosis[chip] || ""}
+                onValueChange={(v) =>
+                  onChange({
+                    ...data,
+                    yearOfDiagnosis: { ...data.yearOfDiagnosis, [chip]: v },
+                  })
+                }
+              >
+                <SelectTrigger className="border-border bg-muted/50 text-sm w-[140px] shrink-0">
+                  <SelectValue placeholder="Select year" />
+                </SelectTrigger>
+                <SelectContent>
+                  {yearOptions.map((year) => (
+                    <SelectItem key={year} value={year}>
+                      {year}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Current status */}
       <div className="space-y-1.5">
