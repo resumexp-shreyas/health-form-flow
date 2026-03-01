@@ -75,6 +75,11 @@ interface MedicalHistoryData {
 
 const Index = () => {
   const navigate = useNavigate();
+
+  ///////////////////////
+  const [ambiguityClear, setAmbiguityClear] = useState(false);
+  const [discrepancyClear, setDiscrepancyClear] = useState(false);
+  ////////////////////////
   const medicalHistoryRef = useRef<MedicalHistoryDetailsRef>(null);
   const [age, setAge] = useState("");
   const [ageInMonths, setAgeInMonths] = useState("");
@@ -253,8 +258,8 @@ const Index = () => {
     }
   }
 
-  const getClarity = {
-//    url: getHost() + `proposal/getclarity/`,
+
+  const handleAmbiguity = {
     url: getHost() + `proposal/findambiguity/`,
     method: "post",
     body: {},
@@ -263,8 +268,35 @@ const Index = () => {
       const uwobject = result.data.response;
       console.log("uwobject:", uwobject);
 
-      const hasDiscrepancies = uwobject.discrepancies_detected && uwobject.discrepancies_detected.length > 0;
       const hasAmbiguous = uwobject.ambiguous_conditions_to_clarify && uwobject.ambiguous_conditions_to_clarify.length > 0;
+
+      if (hasAmbiguous) {
+        console.warn("Ambiguous conditions to clarify:", uwobject.ambiguous_conditions_to_clarify);
+        setAmbiguousConditions(uwobject.ambiguous_conditions_to_clarify);
+        toast.info("Some conditions need clarification. Please review.");
+      }
+
+      if (!hasAmbiguous) {
+        toast.success("Proposal submitted successfully!");
+      }
+      setAmbiguityClear(true);
+    },
+    errorCallBack: (error) => {
+      console.error("Error submitting proposal:", error);
+      toast.error("An error occurred while submitting your proposal. Please try again later.");
+    }
+  };
+
+  const getClarity = {
+    url: getHost() + `proposal/getclarity/`,
+    method: "post",
+    body: {},
+    callBack: (result) => {
+      console.log("Raw response:", result.data.response);
+      const uwobject = result.data.response;
+      console.log("uwobject:", uwobject);
+
+      const hasDiscrepancies = uwobject.discrepancies_detected && uwobject.discrepancies_detected.length > 0;
 
       if (hasDiscrepancies) {
         console.warn("Discrepancies detected:", uwobject.discrepancies_detected);
@@ -272,17 +304,36 @@ const Index = () => {
         toast.error("We detected some discrepancies in your answers. Please review your responses and submit again.");
       }
 
-      if (hasAmbiguous) {
-        console.warn("Ambiguous conditions to clarify:", uwobject.ambiguous_conditions_to_clarify);
-        setAmbiguousConditions(uwobject.ambiguous_conditions_to_clarify);
-        toast.info("Some conditions need clarification. Please review below.");
-      }
-
-      if (!hasDiscrepancies && !hasAmbiguous) {
+      if (!hasDiscrepancies) {
         toast.success("Proposal submitted successfully!");
       }
-
-      setGotClarity(true);
+      //setGotClarity(true);
+      setDiscrepancyClear(true)
+      let proposal_object: Record<string, any> = {
+        age, gender,
+        ...(age === "0" ? { ageInMonths } : {}),
+        lifestyle: [
+          {
+            question: lifestyleQuestions[0].question,
+            answer: lifestyleAnswers[0].value === true ? "Yes" : "No",
+            ...(lifestyleAnswers[0].value === true ? { details: { "Tobacco form(s)": tobaccoForms.join(", ") } } : {}),
+          },
+          {
+            question: lifestyleQuestions[1].question,
+            answer: lifestyleAnswers[1].value === true ? "Yes" : "No",
+          },
+        ],
+        answers: answers.map((a, i) => ({
+          question: questions[i].question,
+          answer: getEffectiveValue(i) === true ? "Yes" : "No",
+          ...(getEffectiveValue(i) === true && questions[i].category === "Medication/ Investigations/ Symptoms/ Treatment" ? { details: a.details } : {}),
+          ...(getEffectiveValue(i) === true && questions[i].category === "Medical History" ? { details: medicalHistoryUsable } : {}),
+          ...(getEffectiveValue(i) === true && questions[i].category === "Hospitalization & Surgery" ? { details: hospitalizationUsable } : {}),
+          ...(getEffectiveValue(i) === true && questions[i].category === "Disability" ? { details: disabilityUsable } : {}),
+          ...(getEffectiveValue(i) === true && questions[i].category === "Past insurance proposal history" ? { details: a.details } : {}),
+        }))
+      };
+      fireAjax({ ...postProposal, body: proposal_object })
     },
     errorCallBack: (error) => {
       console.error("Error submitting proposal:", error);
@@ -418,7 +469,7 @@ const Index = () => {
       toast.error(`Please answer ${entry.label} and it's sub-questions before submitting.`);
       return;
     }
-    
+
     if (gotClarity) {
       toast.success("Proposal submitted successfully!");
     }
@@ -470,7 +521,27 @@ const Index = () => {
       }))
     };
 
-    gotClarity ? fireAjax({ ...postProposal, body: proposal_object }) : fireAjax({ ...getClarity, body: proposal_object });
+
+    //handleAmbiguity - fireajax with handleAmbiguity API and pass proposal_object. In response we will get if there is any ambiguity to clarify.
+
+    //Check if there is any ambiguity? If No then trigger getClarity API which will return if there is any discrepancy to clarify. 
+    //If there is any ambiguity then show the AmbiguousClarification component with the questions to clarify. Once user answer those questions and clicks Confirm & Continue.
+    //Now there is no ambiguity. Now its time to check for discrepancy. onClick to "Confirm & Continue", Trigger getClarity API which will return if there is any discrepancy to clarify.
+    //Once discrepancy is clarified then trigger postProposal API to submit the proposal.
+
+    //Ambiguity clear? if No fireAjax({ ...handleAmbiguity, body: proposal_object }) ////---- If Yes, Continue...
+    if (ambiguityClear === false) {
+      fireAjax({ ...handleAmbiguity, body: proposal_object });
+      return;
+    } else if (discrepancyClear === false) { //Discrepancy clear? if No fireAjax({ ...getClarity, body: proposal_object })    ////---- If Yes, Continue...
+      fireAjax({ ...getClarity, body: proposal_object })
+      return;
+    }
+
+    fireAjax({ ...postProposal, body: proposal_object })
+
+
+    //gotClarity ? fireAjax({ ...postProposal, body: proposal_object }) : fireAjax({ ...getClarity, body: proposal_object });
   };
 
   return (
@@ -620,10 +691,10 @@ const Index = () => {
 
               <ul className="space-y-2">
                 {discrepancies.map((d, i) => (
-<li
-  key={i}
-  className="flex items-start justify-between gap-2 rounded-lg border border-red-100 bg-red-50/50 p-3 transition-colors hover:bg-red-50"
->
+                  <li
+                    key={i}
+                    className="flex items-start justify-between gap-2 rounded-lg border border-red-100 bg-red-50/50 p-3 transition-colors hover:bg-red-50"
+                  >
                     <div className="flex gap-2 flex-1 items-start">
                       <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-purple-600 text-white text-[10px] font-bold">
                         {i + 1}
@@ -670,8 +741,12 @@ const Index = () => {
                 };
               });
               setAmbiguousConditions([]);
-              setGotClarity(true);
-              toast.success("Conditions clarified. You can now submit.");
+              // setGotClarity(true);//Old logic: once ambiguity is clear, we can submit the proposal. New logic: once ambiguity is clear, we need to check for discrepancy. If there is no discrepancy then we can submit the proposal.
+              setAmbiguityClear(true);
+              // trigger getClarity API to check if there is any discrepancy after ambiguity is clarified
+              //handleSubmit will check the ambiguityClear and discrepancyClear state to decide whether to call getClarity API or postProposal API
+              handleSubmit();
+              toast.success("Conditions clarified.");
             }}
           />
         )}
