@@ -14,6 +14,7 @@ interface PersonalInfoFieldsProps {
   onAgeChange: (age: string) => void;
   onGenderChange: (gender: string) => void;
   onAgeInMonthsChange: (months: string) => void;
+  onAgeBlur?: () => void;
 }
 
 const genderOptions = ["Male", "Female", "Other"];
@@ -25,6 +26,7 @@ const PersonalInfoFields = ({
   onAgeChange,
   onGenderChange,
   onAgeInMonthsChange,
+  onAgeBlur,
 }: PersonalInfoFieldsProps) => {
   return (
     <div className="rounded-lg border border-border bg-card p-5">
@@ -48,6 +50,7 @@ const PersonalInfoFields = ({
                 if (v !== "0") onAgeInMonthsChange("");
               }
             }}
+            onBlur={onAgeBlur}
             className="w-[72px] text-center"
           />
         </div>
