@@ -104,7 +104,15 @@ const HospitalizationDetails = ({ data, onChange }: HospitalizationDetailsProps)
     const next = data.hospitalizationType.includes(type)
       ? data.hospitalizationType.filter((t) => t !== type)
       : [...data.hospitalizationType, type];
-    onChange({ ...data, hospitalizationType: next });
+    const update: HospitalizationData = { ...data, hospitalizationType: next };
+    // Clear timing & outcome when "Past hospitalization" is unchecked
+    if (!next.includes("Past hospitalization")) {
+      update.yearsAgo = "";
+      update.monthsAgo = "";
+      update.outcome = "";
+      update.outcomeOther = "";
+    }
+    onChange(update);
   };
 
   const hospitalizationTypeOptions = ["Past hospitalization", "Planned hospitalization"];
@@ -166,7 +174,8 @@ const HospitalizationDetails = ({ data, onChange }: HospitalizationDetailsProps)
         )}
       </div>
 
-      {/* When */}
+      {/* When - only visible if Past hospitalization is selected */}
+      {data.hospitalizationType.includes("Past hospitalization") && (
       <div className="space-y-1.5">
       <label className="text-xs font-medium text-muted-foreground">
           When were you hospitalized? (applicable in case of hospitalization in past)
@@ -202,8 +211,10 @@ const HospitalizationDetails = ({ data, onChange }: HospitalizationDetailsProps)
           <span className="text-sm text-muted-foreground"> Months ago</span>
         </div>
       </div>
+      )}
 
-      {/* Outcome */}
+      {/* Outcome - only visible if Past hospitalization is selected */}
+      {data.hospitalizationType.includes("Past hospitalization") && (
       <div className="space-y-1.5">
         <label className="text-xs font-medium text-muted-foreground">
           Outcome of hospitalization/ surgery (applicable in case of hospitalization in past)
@@ -230,6 +241,7 @@ const HospitalizationDetails = ({ data, onChange }: HospitalizationDetailsProps)
           />
         )}
       </div>
+      )}
       {/* Discharge Summary */}
       <div className="space-y-3">
         <label className="text-xs font-medium text-muted-foreground">
