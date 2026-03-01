@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { CheckCircle2, XCircle, Clock, Home } from "lucide-react";
+import { CheckCircle2, XCircle, Clock, Home, ClipboardList, Info } from "lucide-react";
 import {
   Table,
   TableHeader,
@@ -46,6 +46,7 @@ const Summary = () => {
   const isDecline = decision === "Decline";
   const isAcceptStandard = decision === "Accept standard";
   const isAcceptWaiting = decision === "Accept with waiting period";
+  const isReferUWR = decision === "Refer to UWR";
 
   const bannerConfig = isDecline
     ? {
@@ -60,6 +61,13 @@ const Summary = () => {
         bg: "bg-green-50 border-green-200",
         badgeCls: "bg-green-100 text-green-700 border-green-300",
         title: "Application Accepted",
+      }
+    : isReferUWR
+    ? {
+        icon: <ClipboardList className="h-10 w-10 text-indigo-600" />,
+        bg: "bg-indigo-50 border-indigo-200",
+        badgeCls: "bg-indigo-100 text-indigo-700 border-indigo-300",
+        title: "Referred to Underwriter",
       }
     : {
         icon: <Clock className="h-10 w-10 text-purple-600" />,
@@ -117,8 +125,8 @@ const Summary = () => {
           <p className="text-base font-medium text-foreground">{decision}</p>
         </div>
 
-        {/* Decision Rationale — for Decline and Accept with waiting period */}
-        {(isDecline || isAcceptWaiting) && rationale && (
+        {/* Decision Rationale — for Decline, Accept with waiting period, and Refer to UWR */}
+        {(isDecline || isAcceptWaiting || isReferUWR) && rationale && (
           <div
             className="rounded-xl border border-border bg-card p-6 mb-6 shadow-sm animate-fade-in"
             style={{ animationDelay: "0.2s", animationFillMode: "both" }}
@@ -126,11 +134,25 @@ const Summary = () => {
             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">
               Decision Rationale
             </p>
-            <div className="border-l-4 border-primary/60 bg-muted/30 rounded-r-lg px-4 py-3">
+            <div className={`border-l-4 ${isReferUWR ? "border-indigo-400 bg-indigo-50/30" : "border-primary/60 bg-muted/30"} rounded-r-lg px-4 py-3`}>
               <p className="text-sm text-foreground leading-relaxed">
                 {rationale}
               </p>
             </div>
+          </div>
+        )}
+
+        {/* Under Review informational message — only for Refer to UWR */}
+        {isReferUWR && (
+          <div
+            className="rounded-xl border border-blue-100 bg-blue-50 p-5 mb-6 shadow-sm animate-fade-in flex items-start gap-3"
+            style={{ animationDelay: "0.25s", animationFillMode: "both" }}
+          >
+            <Info className="h-5 w-5 text-blue-600 mt-0.5 shrink-0" />
+            <p className="text-sm text-blue-700 leading-relaxed">
+              Your application has been referred to our underwriting team for
+              further review. We will get back to you shortly.
+            </p>
           </div>
         )}
 

@@ -329,7 +329,7 @@ const Index = () => {
           });
         } else if (uwobject.underwriting_decision === "Refer to UWR" && uwobject.refer_to_uwr_details?.suggested_questions?.length > 0) {
           navigate(`/uw-reflex-questions`, {
-            state: { questions: uwobject.refer_to_uwr_details.suggested_questions },
+            state: { uwData: uwobject },
           });
         }
       },
