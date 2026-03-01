@@ -156,10 +156,9 @@ const Index = () => {
   const answered = lifestyleAnswered + medicalAnswered;
   const totalQuestions = lifestyleQuestions.length + questions.length;
 
-  // Auto-default lifestyle to No for minors when age changes
-  const handleAgeChange = (newAge: string) => {
-    setAge(newAge);
-    const num = newAge === "" ? null : Number(newAge);
+  // Auto-default lifestyle to No for minors on age blur
+  const handleAgeBlur = () => {
+    const num = age === "" ? null : Number(age);
     if (num !== null && num <= 18) {
       setLifestyleAnswers((prev) =>
         prev.map((a) => (a.value === null ? { ...a, value: false } : a))
@@ -520,9 +519,10 @@ return (
         age={age}
         gender={gender}
         ageInMonths={ageInMonths}
-        onAgeChange={handleAgeChange}
+        onAgeChange={setAge}
         onGenderChange={setGender}
         onAgeInMonthsChange={setAgeInMonths}
+        onAgeBlur={handleAgeBlur}
       />
 
       {/* Lifestyle Questions */}
