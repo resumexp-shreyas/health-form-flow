@@ -12,6 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 
 export interface HospitalizationData {
+  hospitalizationType: string[];
   reasons: string[];
   reasonOther: string;
   yearsAgo: string;
@@ -99,8 +100,40 @@ const HospitalizationDetails = ({ data, onChange }: HospitalizationDetailsProps)
     onChange({ ...data, uploadedFiles: next });
   };
 
+  const toggleHospitalizationType = (type: string) => {
+    const next = data.hospitalizationType.includes(type)
+      ? data.hospitalizationType.filter((t) => t !== type)
+      : [...data.hospitalizationType, type];
+    onChange({ ...data, hospitalizationType: next });
+  };
+
+  const hospitalizationTypeOptions = ["Past hospitalization", "Planned hospitalization"];
+
   return (
     <div className="space-y-4">
+      {/* Hospitalization Type */}
+      <div className="space-y-3">
+        <p className="text-sm font-medium text-card-foreground">
+          Type of hospitalization
+        </p>
+        <div className="flex gap-4">
+          {hospitalizationTypeOptions.map((option) => (
+            <label
+              key={option}
+              className="flex items-center gap-2 cursor-pointer"
+            >
+              <Checkbox
+                checked={data.hospitalizationType.includes(option)}
+                onCheckedChange={() => toggleHospitalizationType(option)}
+              />
+              <Label className="cursor-pointer text-sm text-card-foreground">
+                {option}
+              </Label>
+            </label>
+          ))}
+        </div>
+      </div>
+
       {/* Reasons - multi-select checkboxes */}
       <div className="space-y-1.5">
         <label className="text-xs font-medium text-muted-foreground">
