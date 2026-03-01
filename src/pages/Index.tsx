@@ -68,7 +68,7 @@ interface Answer {
 interface MedicalHistoryData {
   condition: string;
   yearOfDiagnosis: Record<string, string>;
-  currentStatus: string;
+  currentStatus: Record<string, string>;
 }
 
 const Index = () => {
@@ -86,7 +86,7 @@ const Index = () => {
   const [medicalHistory, setMedicalHistory] = useState<MedicalHistoryData>({
     condition: "",
     yearOfDiagnosis: {},
-    currentStatus: "",
+    currentStatus: {},
   });
   const [hospitalization, setHospitalization] = useState<HospitalizationData>({
     hospitalizationType: [],
@@ -113,10 +113,11 @@ const Index = () => {
     "I have a surgery planned",
     "I'm recovering from surgery",
   ];
-  const isSurgeryRelated = surgeryStatuses.includes(medicalHistory.currentStatus);
+  const statusValues = Object.values(medicalHistory.currentStatus);
+  const isSurgeryRelated = statusValues.some(s => surgeryStatuses.includes(s));
 
   const autoAnswerNote = isSurgeryRelated
-    ? medicalHistory.currentStatus === "I have a surgery planned"
+    ? statusValues.includes("I have a surgery planned")
       ? "Answered Yes as we noted you have a planned surgery."
       : "Answered Yes as we noted you are recovering from surgery."
     : null;
@@ -316,7 +317,8 @@ const handleSubmit = () => {
   if (getEffectiveValue(0) === true) {
     const conditions = medicalHistory.condition.split("||").filter(Boolean);
     const allYearsFilled = conditions.length > 0 && conditions.every(c => medicalHistory.yearOfDiagnosis[c]);
-    if (!medicalHistory.condition.trim() || !allYearsFilled || !medicalHistory.currentStatus) {
+    const allStatusFilled = conditions.length > 0 && conditions.every(c => medicalHistory.currentStatus[c]);
+    if (!medicalHistory.condition.trim() || !allYearsFilled || !allStatusFilled) {
       incompleteParentIndices.set(offset + 0, { label: `Question ${offset + 1}`, questionText: questions[0].question });
     }
   }
@@ -383,7 +385,7 @@ const handleSubmit = () => {
     let medicalHistoryUsable = {
     "Medical condition": medicalHistory.condition,
     "Year Of diagnosis": conditionsList.map(c => `${c}: ${medicalHistory.yearOfDiagnosis[c] || "N/A"}`).join("; "),
-    "Current Status": medicalHistory.currentStatus
+    "Current Status": conditionsList.map(c => `${c}: ${medicalHistory.currentStatus[c] || "N/A"}`).join("; ")
   };
 
   let hospitalizationUsable = {
