@@ -15,7 +15,7 @@ import medicalConditions from "@/data/medicalConditions";
 interface MedicalHistoryData {
   condition: string;
   yearOfDiagnosis: Record<string, string>;
-  currentStatus: string;
+  currentStatus: Record<string, string>;
 }
 
 export interface MedicalHistoryDetailsRef {
@@ -83,13 +83,16 @@ const MedicalHistoryDetails = forwardRef<MedicalHistoryDetailsRef, MedicalHistor
   const syncChips = useCallback(
     (next: string[]) => {
       setChips(next);
-      // Clean up yearOfDiagnosis keys for removed conditions
       const nextSet = new Set(next);
       const cleanedYears: Record<string, string> = {};
+      const cleanedStatus: Record<string, string> = {};
       for (const key of Object.keys(data.yearOfDiagnosis)) {
         if (nextSet.has(key)) cleanedYears[key] = data.yearOfDiagnosis[key];
       }
-      onChange({ ...data, condition: next.join("||"), yearOfDiagnosis: cleanedYears });
+      for (const key of Object.keys(data.currentStatus)) {
+        if (nextSet.has(key)) cleanedStatus[key] = data.currentStatus[key];
+      }
+      onChange({ ...data, condition: next.join("||"), yearOfDiagnosis: cleanedYears, currentStatus: cleanedStatus });
     },
     [data, onChange]
   );
@@ -290,27 +293,39 @@ const MedicalHistoryDetails = forwardRef<MedicalHistoryDetailsRef, MedicalHistor
         </div>
       )}
 
-      {/* Current status */}
-      <div className="space-y-1.5">
-        <label className="text-xs font-medium text-muted-foreground">
-          Current status
-        </label>
-        <Select
-          value={data.currentStatus}
-          onValueChange={(v) => onChange({ ...data, currentStatus: v })}
-        >
-          <SelectTrigger className="border-border bg-muted/50 text-sm">
-            <SelectValue placeholder="Select current status" />
-          </SelectTrigger>
-          <SelectContent>
-            {statusOptions.map((status) => (
-              <SelectItem key={status} value={status}>
-                {status}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      {/* Current status – one per condition */}
+      {chips.length > 0 && (
+        <div className="space-y-3">
+          <label className="text-xs font-medium text-muted-foreground">
+            Current status
+          </label>
+          {chips.map((chip) => (
+            <div key={chip} className="flex items-center gap-3">
+              <span className="text-sm text-foreground truncate min-w-0 flex-1">{chip}</span>
+              <Select
+                value={data.currentStatus[chip] || ""}
+                onValueChange={(v) =>
+                  onChange({
+                    ...data,
+                    currentStatus: { ...data.currentStatus, [chip]: v },
+                  })
+                }
+              >
+                <SelectTrigger className="border-border bg-muted/50 text-sm w-[260px] shrink-0">
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  {statusOptions.map((status) => (
+                    <SelectItem key={status} value={status}>
+                      {status}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 });
