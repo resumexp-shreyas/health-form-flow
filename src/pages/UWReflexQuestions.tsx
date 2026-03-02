@@ -30,15 +30,27 @@ const UWReflexQuestions = () => {
   const uwData = location.state?.uwData;
   const rawQuestions = uwData?.refer_to_uwr_details?.suggested_questions || [];
   
-  // Normalize question fields to handle varying API response shapes
-  const questions: UWQuestion[] = rawQuestions.map((q: any, idx: number) => ({
-    question_sequence_number: q.question_sequence_number ?? q.sequence_number ?? q.seq ?? (idx + 1),
-    question_text: q.question_text ?? q.question ?? q.text ?? "",
-    answer_format: q.answer_format ?? q.format ?? q.type ?? "Free text",
-    range_start: q.range_start ?? null,
-    range_end: q.range_end ?? null,
-    options: q.options ?? q.dropdown_options ?? [],
-  }));
+  // Normalize question fields - handle both plain strings and object shapes
+  const questions: UWQuestion[] = rawQuestions.map((q: any, idx: number) => {
+    if (typeof q === "string") {
+      return {
+        question_sequence_number: idx + 1,
+        question_text: q,
+        answer_format: "Free text",
+        range_start: null,
+        range_end: null,
+        options: [],
+      };
+    }
+    return {
+      question_sequence_number: q.question_sequence_number ?? q.sequence_number ?? q.seq ?? (idx + 1),
+      question_text: q.question_text ?? q.question ?? q.text ?? "",
+      answer_format: q.answer_format ?? q.format ?? q.type ?? "Free text",
+      range_start: q.range_start ?? null,
+      range_end: q.range_end ?? null,
+      options: q.options ?? q.dropdown_options ?? [],
+    };
+  });
 
   console.log("UW Reflex Questions - raw data:", JSON.stringify(rawQuestions, null, 2));
   console.log("UW Reflex Questions - normalized:", JSON.stringify(questions, null, 2));
