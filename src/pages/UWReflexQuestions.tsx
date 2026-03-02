@@ -87,7 +87,7 @@ const UWReflexQuestions = () => {
     fireAjax({
       url: getHost() + `proposal/postUWQn/`,
       method: "post",
-      body: { answers: collectedAnswers },
+      body: { answers: collectedAnswers, proposal_id: uwData.proposal_id },
       callBack: (result: any) => {
         setIsSubmitting(false);
         if (result?.data) {
@@ -215,7 +215,7 @@ const UWReflexQuestions = () => {
 
         <div className="space-y-4">
           {questions
-            .sort((a, b) => a.question_sequence_number - b.question_sequence_number)
+            //.sort((a, b) => a.question_sequence_number - b.question_sequence_number)
             .map((q, i) => (
               <div
                 key={q.question_sequence_number}

@@ -317,6 +317,11 @@ const Index = () => {
       callBack: (result) => {
         setIsSubmitting(false);
         console.log("Raw response:", result.data.response);
+        const proposal_id = result.data.proposal_id;
+
+        // Save to localStorage
+        localStorage.setItem("proposal_id", proposal_id);
+
         const uwobject = result.data.response;
         console.log("uwobject:", uwobject);
 
@@ -327,10 +332,15 @@ const Index = () => {
           navigate(`/reflex-questions`, {
             state: { questions: uwobject.more_questions_details, proposalObject: proposalObj },
           });
-        } else if (uwobject.underwriting_decision === "Refer to UWR" && uwobject.refer_to_uwr_details?.suggested_questions?.length > 0) {
-          navigate(`/uw-reflex-questions`, {
-            state: { uwData: uwobject },
-          });
+        } else if (uwobject.underwriting_decision === "Refer to UWR") {
+          if (uwobject.refer_to_uwr_details?.suggested_questions?.length > 0) {
+
+            navigate(`/uw-reflex-questions`, {
+              state: { uwData: uwobject},
+            });
+          }else{
+            navigate(`/summary`, { state: { uwData: uwobject } });
+          }
         }
       },
     });

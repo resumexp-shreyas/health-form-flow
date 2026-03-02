@@ -78,11 +78,12 @@ const ReflexQuestions = () => {
     setApiError(null);
 
     fireAjax({
-      url: getHost() + `proposal/submitAdditionalQns/`,
+      url: getHost() + `proposal/SubmitAdditionalAnswers/`,
       method: "post",
       body: {
         ...proposalObject,
-        additional_qna: collectedAnswers,
+        additional_answers: collectedAnswers,
+        proposal_id: localStorage.getItem("proposal_id") || proposalObject.proposal_id,
       },
       callBack: (result: any) => {
         setIsSubmitting(false);
@@ -91,7 +92,7 @@ const ReflexQuestions = () => {
           const summaryDecisions = ["Decline", "Accept standard", "Accept with waiting period"];
 
           if (summaryDecisions.includes(uwobject.underwriting_decision)) {
-            navigate("/summary", { state: { uwData: uwobject } });
+            navigate("/summary", { state: { uwData: uwobject, proposal_id: localStorage.getItem("proposal_id") } });
           } else if (
             uwobject.underwriting_decision === "Refer to UWR" &&
             uwobject.refer_to_uwr_details?.suggested_questions?.length > 0
