@@ -12,7 +12,7 @@ export const getHost = () => {
     hosturl = `https://uwbrain-216941414590.asia-south1.run.app/`//`http://localhost:8000/`;
   } else {
     //console.log("host: resumexp");
-    hosturl = `https://uwbrain-216941414590.asia-south1.run.app/`//"http://localhost:8000/"; //`https://www.resumexp.com/`;
+    hosturl = `https://uwbrain-216941414590.asia-south1.run.app/`//"http://localhost:8000/";
   }
   //hosturl = `https://www.resumexp.com/`;
   //hosturl = `https://resumexp-api-216941414590.asia-south1.run.app/`;
