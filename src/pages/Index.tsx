@@ -7,7 +7,8 @@ import DisabilityDetails, { type DisabilityData } from "@/components/DisabilityD
 import TobaccoDetails from "@/components/TobaccoDetails";
 import PersonalInfoFields from "@/components/PersonalInfoFields";
 import ProgressBar from "@/components/ProgressBar";
-import { ShieldCheck, X, AlertTriangle, Loader2 } from "lucide-react";
+import { X, AlertTriangle, Loader2 } from "lucide-react";
+import uwBrainLogo from "@/assets/UW_Brain_Logo.png";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import AmbiguousClarification, { type AmbiguousCondition } from "@/components/AmbiguousClarification";
@@ -520,8 +521,8 @@ const Index = () => {
       <div className="mx-auto max-w-2xl px-4 py-10">
         {/* Header */}
         <div className="mb-8 text-center">
-          <div className="mb-3 inline-flex items-center justify-center rounded-full bg-primary/10 p-3">
-            <ShieldCheck className="h-7 w-7 text-primary" />
+          <div className="mb-3 inline-flex items-center justify-center">
+            <img src={uwBrainLogo} alt="UW Brain Logo" className="h-20 w-20 object-contain" />
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">
             Health Insurance Proposal Form
