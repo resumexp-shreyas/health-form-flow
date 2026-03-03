@@ -90,19 +90,10 @@ const ReflexQuestions = () => {
         if (result?.data?.response) {
           const uwobject = result.data.response;
           const summaryDecisions = ["Decline", "Accept standard", "Accept with waiting period"];
-
           if (summaryDecisions.includes(uwobject.underwriting_decision)) {
             navigate("/summary", { state: { uwData: uwobject, proposal_id: localStorage.getItem("proposal_id") } });
-          } else if (
-            uwobject.underwriting_decision === "Refer to UWR" &&
-            uwobject.refer_to_uwr_details?.suggested_questions?.length > 0
-          ) {
-            navigate("/uw-reflex-questions", { state: { uwData: uwobject } });
-          } else if (
-            uwobject.underwriting_decision === "Refer to UWR" &&
-            uwobject.refer_to_uwr_details?.suggested_questions?.length < 1
-          ) {
-            navigate("/summary", { state: { uwData: uwobject, proposal_id: localStorage.getItem("proposal_id") } });           
+          } else if (uwobject.underwriting_decision === "Refer to UWR") {
+            navigate("/summary", { state: { uwData: uwobject, proposal_id: localStorage.getItem("proposal_id") } }); //// Here Navigate to "/summary"          
           } else {
             setApiError(
               `Unexpected decision: "${uwobject.underwriting_decision}". Please contact support.`

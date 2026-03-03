@@ -9,7 +9,7 @@ export const getHost = () => {
   let hosturl;
   if (window.location.hostname.includes("localhost")) {
     //console.log("host: localhost");
-    hosturl = `https://uwbrain-216941414590.asia-south1.run.app/`//`http://localhost:8000/`;
+    hosturl = `http://localhost:8000/`;
   } else {
     //console.log("host: resumexp");
     hosturl = `https://uwbrain-216941414590.asia-south1.run.app/`//"http://localhost:8000/";

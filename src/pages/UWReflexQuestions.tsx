@@ -222,7 +222,7 @@ const UWReflexQuestions = () => {
             Underwriter Questions
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Please provide detailed answers to the following questions.
+            Please provide detailed answers to the following questions. {`${uwData.proposal_id} `}
           </p>
         </div>
 
@@ -278,6 +278,11 @@ const UWReflexQuestions = () => {
           >
             Skip and call me back for details
           </button>
+          {uwData.proosal_id && (
+            <p className="mt-4 text-xs text-muted-foreground">
+              Proposal ID: {uwData.proposal_id}
+            </p>
+          )}
         </div>
       </div>
     </div>
