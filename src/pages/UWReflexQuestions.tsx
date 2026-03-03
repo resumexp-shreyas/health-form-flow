@@ -95,7 +95,8 @@ const UWReflexQuestions = () => {
     }));
 
     setIsSubmitting(true);
-
+    console.log("Submitting UW Reflex Answers:", collectedAnswers);
+    console.log("Submitting UW Reflex - proposal_id:", uwData.proposal_id);
     fireAjax({
       url: getHost() + `proposal/postUWQn/`,
       method: "post",

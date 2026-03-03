@@ -336,9 +336,9 @@ const Index = () => {
           if (uwobject.refer_to_uwr_details?.suggested_questions?.length > 0) {
 
             navigate(`/uw-reflex-questions`, {
-              state: { uwData: uwobject},
+              state: { uwData: uwobject },
             });
-          }else{
+          } else {
             navigate(`/summary`, { state: { uwData: uwobject } });
           }
         }
@@ -761,7 +761,7 @@ const Index = () => {
           <button
             onClick={handleSubmit}
             disabled={discrepancies.length > 0 || ambiguousConditions.length > 0 || isSubmitting}
-            className="inline-flex items-center gap-2 rounded-lg bg-[hsl(var(--answer-active))] px-10 py-3 text-sm font-semibold text-[hsl(var(--answer-active-foreground))] shadow-sm transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-2 rounded-lg bg-violet-500 px-10 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:bg-violet-600 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
             {isSubmitting ? "Processing…" : "Submit"}

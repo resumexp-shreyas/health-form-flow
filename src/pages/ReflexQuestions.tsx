@@ -98,6 +98,11 @@ const ReflexQuestions = () => {
             uwobject.refer_to_uwr_details?.suggested_questions?.length > 0
           ) {
             navigate("/uw-reflex-questions", { state: { uwData: uwobject } });
+          } else if (
+            uwobject.underwriting_decision === "Refer to UWR" &&
+            uwobject.refer_to_uwr_details?.suggested_questions?.length < 1
+          ) {
+            navigate("/summary", { state: { uwData: uwobject, proposal_id: localStorage.getItem("proposal_id") } });           
           } else {
             setApiError(
               `Unexpected decision: "${uwobject.underwriting_decision}". Please contact support.`
@@ -150,11 +155,10 @@ const ReflexQuestions = () => {
                 key={opt}
                 type="button"
                 onClick={() => updateAnswer(seq, opt)}
-                className={`rounded-md px-5 py-2 text-sm font-medium transition-all duration-150 ${
-                  value === opt
+                className={`rounded-md px-5 py-2 text-sm font-medium transition-all duration-150 ${value === opt
                     ? "bg-[hsl(var(--answer-active))] text-[hsl(var(--answer-active-foreground))] shadow-sm"
                     : "border border-border bg-card text-muted-foreground hover:bg-secondary"
-                }`}
+                  }`}
               >
                 {opt}
               </button>
