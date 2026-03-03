@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { CheckCircle2, XCircle, Clock, Home, ClipboardList, Info } from "lucide-react";
+import { CheckCircle2, XCircle, Clock, Home, ClipboardList, Info, TrendingUp } from "lucide-react";
 import {
   Table,
   TableHeader,
@@ -14,6 +14,19 @@ interface WaitingPeriodCondition {
   condition: string;
   icd_category_code: string;
   icd_description: string;
+}
+
+interface LoadingCondition {
+  condition: string;
+  icd_category_code: string;
+  icd_description: string;
+  loading_percentage: number;
+}
+
+interface LoadingDetails {
+  applicable: boolean;
+  loading_conditions: LoadingCondition[];
+  total_loading_percentage: number;
 }
 
 const Summary = () => {
@@ -42,11 +55,14 @@ const Summary = () => {
   const rationale: string = uwData.decision_rationale || "";
   const waitingPeriodDetails: WaitingPeriodCondition[] =
     uwData.waiting_period_details || uwData.conditions || [];
+  const loadingDetails: LoadingDetails | null = uwData.loading_details || null;
 
   const isDecline = decision === "Decline";
   const isAcceptStandard = decision === "Accept standard";
   const isAcceptWaiting = decision === "Accept with waiting period";
   const isReferUWR = decision === "Refer to UWR";
+  const isAcceptLoading = decision === "Accept with loading";
+  const isAcceptLoadingAndWaiting = decision === "Accept with loading and waiting period";
 
   const bannerConfig = isDecline
     ? {
@@ -69,12 +85,35 @@ const Summary = () => {
         badgeCls: "bg-indigo-100 text-indigo-700 border-indigo-300",
         title: "Referred to Underwriter",
       }
+    : isAcceptLoading
+    ? {
+        icon: <TrendingUp className="h-10 w-10 text-amber-600" />,
+        bg: "bg-amber-50 border-amber-200",
+        badgeCls: "bg-amber-100 text-amber-700 border-amber-300",
+        title: "Accepted with Loading",
+      }
+    : isAcceptLoadingAndWaiting
+    ? {
+        icon: <TrendingUp className="h-10 w-10 text-orange-600" />,
+        bg: "bg-orange-50 border-orange-200",
+        badgeCls: "bg-orange-100 text-orange-700 border-orange-300",
+        title: "Accepted with Loading & Waiting Period",
+      }
     : {
         icon: <Clock className="h-10 w-10 text-purple-600" />,
         bg: "bg-purple-50 border-purple-200",
         badgeCls: "bg-purple-100 text-purple-700 border-purple-300",
         title: "Conditional Acceptance",
       };
+
+  const showLoadingTable =
+    (isAcceptLoading || isAcceptLoadingAndWaiting) &&
+    loadingDetails?.applicable &&
+    loadingDetails.loading_conditions?.length > 0;
+
+  const showWaitingTable =
+    (isAcceptWaiting || isAcceptLoadingAndWaiting) &&
+    waitingPeriodDetails.length > 0;
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -125,8 +164,8 @@ const Summary = () => {
           <p className="text-base font-medium text-foreground">{decision}</p>
         </div>
 
-        {/* Decision Rationale — for Decline, Accept with waiting period, and Refer to UWR */}
-        {(isDecline || isAcceptWaiting || isReferUWR) && rationale && (
+        {/* Decision Rationale — for Decline, Accept with waiting period, Refer to UWR, and loading decisions */}
+        {(isDecline || isAcceptWaiting || isReferUWR || isAcceptLoading || isAcceptLoadingAndWaiting) && rationale && (
           <div
             className="rounded-xl border border-border bg-card p-6 mb-6 shadow-sm animate-fade-in"
             style={{ animationDelay: "0.2s", animationFillMode: "both" }}
@@ -156,7 +195,81 @@ const Summary = () => {
           </div>
         )}
 
-        {/* Waiting Period Table — only for Accept with waiting period */}
+        {/* Loading Details Table — for Accept with loading / Accept with loading and waiting period */}
+        {showLoadingTable && (
+          <div
+            className="rounded-xl border border-border bg-card p-6 mb-6 shadow-sm animate-fade-in"
+            style={{ animationDelay: "0.25s", animationFillMode: "both" }}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                {isAcceptLoadingAndWaiting ? "Loading & Waiting Period Details" : "Loading Details"}
+              </p>
+              <Badge className="bg-amber-100 text-amber-700 border-amber-300 text-xs font-semibold">
+                Total Loading: {loadingDetails!.total_loading_percentage}%
+              </Badge>
+            </div>
+            <div className="overflow-x-auto -mx-2">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/40">
+                    <TableHead className="text-xs font-bold uppercase tracking-wide">
+                      Medical Condition
+                    </TableHead>
+                    <TableHead className="text-xs font-bold uppercase tracking-wide">
+                      Loading Percentage
+                    </TableHead>
+                    {isAcceptLoadingAndWaiting && (
+                      <TableHead className="text-xs font-bold uppercase tracking-wide">
+                        Waiting Period
+                      </TableHead>
+                    )}
+                    <TableHead className="text-xs font-bold uppercase tracking-wide">
+                      ICD Code
+                    </TableHead>
+                    <TableHead className="text-xs font-bold uppercase tracking-wide">
+                      ICD Description
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {loadingDetails!.loading_conditions.map(
+                    (item: LoadingCondition, idx: number) => (
+                      <TableRow
+                        key={idx}
+                        className={idx % 2 === 0 ? "bg-card" : "bg-muted/20"}
+                      >
+                        <TableCell className="text-sm font-medium">
+                          {item.condition}
+                        </TableCell>
+                        <TableCell>
+                          <Badge className="bg-amber-100 text-amber-700 border-amber-300 font-semibold text-xs">
+                            {item.loading_percentage}%
+                          </Badge>
+                        </TableCell>
+                        {isAcceptLoadingAndWaiting && (
+                          <TableCell>
+                            <Badge className="bg-primary/15 text-primary border-primary/30 font-semibold text-xs">
+                              3 Years
+                            </Badge>
+                          </TableCell>
+                        )}
+                        <TableCell className="text-sm">
+                          {item.icd_category_code}
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          {item.icd_description}
+                        </TableCell>
+                      </TableRow>
+                    )
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+        )}
+
+        {/* Waiting Period Table — only for Accept with waiting period (standalone) */}
         {isAcceptWaiting && waitingPeriodDetails.length > 0 && (
           <div
             className="rounded-xl border border-border bg-card p-6 mb-6 shadow-sm animate-fade-in"
