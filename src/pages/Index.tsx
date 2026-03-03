@@ -326,7 +326,7 @@ const Index = () => {
         const uwobject = result.data.response;
         console.log("uwobject:", uwobject);
 
-        const summaryDecisions = ["Decline", "Accept standard", "Accept with waiting period"];
+        const summaryDecisions = ["Decline", "Accept standard", "Accept with waiting period", "Accept with loading", "Accept with loading and waiting period"];
         if (summaryDecisions.includes(uwobject.underwriting_decision)) {
           navigate(`/summary`, { state: { uwData: uwobject } });
         } else if (uwobject.underwriting_decision === "Ask more questions") {

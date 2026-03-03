@@ -89,7 +89,7 @@ const ReflexQuestions = () => {
         setIsSubmitting(false);
         if (result?.data?.response) {
           const uwobject = result.data.response;
-          const summaryDecisions = ["Decline", "Accept standard", "Accept with waiting period"];
+          const summaryDecisions = ["Decline", "Accept standard", "Accept with waiting period", "Accept with loading", "Accept with loading and waiting period"];
           if (summaryDecisions.includes(uwobject.underwriting_decision)) {
             navigate("/summary", { state: { uwData: uwobject, proposal_id: localStorage.getItem("proposal_id") } });
           } else if (uwobject.underwriting_decision === "Refer to UWR") {
