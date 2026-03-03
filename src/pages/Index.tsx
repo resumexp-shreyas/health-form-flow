@@ -338,7 +338,7 @@ const Index = () => {
 
           if (uwobject.refer_to_uwr_details?.suggested_questions?.length > 0) {
             navigate(`/uw-reflex-questions`, {
-              state: { uwData: uwobject },
+              state: { uwData: { ...uwobject, proposal_id: localStorage.getItem("proposal_id") || uwobject.proposal_id } },
             });
 
             
