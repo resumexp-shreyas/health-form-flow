@@ -106,13 +106,51 @@ const Summary = () => {
         title: "Conditional Acceptance",
       };
 
+  // Build merged rows for "Accept with loading and waiting period"
+  const mergedRows = (() => {
+    if (!isAcceptLoadingAndWaiting) return [];
+    const map = new Map<string, { condition: string; icd_category_code: string; icd_description: string; loading_percentage?: number; hasWaiting: boolean }>();
+
+    // Add loading conditions
+    if (loadingDetails?.applicable && loadingDetails.loading_conditions?.length) {
+      for (const lc of loadingDetails.loading_conditions) {
+        map.set(lc.condition, {
+          condition: lc.condition,
+          icd_category_code: lc.icd_category_code,
+          icd_description: lc.icd_description,
+          loading_percentage: lc.loading_percentage,
+          hasWaiting: false,
+        });
+      }
+    }
+
+    // Mark or add waiting period conditions
+    for (const wp of waitingPeriodDetails) {
+      const existing = map.get(wp.condition);
+      if (existing) {
+        existing.hasWaiting = true;
+      } else {
+        map.set(wp.condition, {
+          condition: wp.condition,
+          icd_category_code: wp.icd_category_code,
+          icd_description: wp.icd_description,
+          hasWaiting: true,
+        });
+      }
+    }
+
+    return Array.from(map.values());
+  })();
+
+  const showMergedTable = isAcceptLoadingAndWaiting && mergedRows.length > 0;
+
   const showLoadingTable =
-    (isAcceptLoading || isAcceptLoadingAndWaiting) &&
+    isAcceptLoading &&
     loadingDetails?.applicable &&
     loadingDetails.loading_conditions?.length > 0;
 
   const showWaitingTable =
-    (isAcceptWaiting || isAcceptLoadingAndWaiting) &&
+    isAcceptWaiting &&
     waitingPeriodDetails.length > 0;
 
   return (
@@ -195,7 +233,7 @@ const Summary = () => {
           </div>
         )}
 
-        {/* Loading Details Table — for Accept with loading / Accept with loading and waiting period */}
+        {/* Loading Details Table — for Accept with loading only */}
         {showLoadingTable && (
           <div
             className="rounded-xl border border-border bg-card p-6 mb-6 shadow-sm animate-fade-in"
@@ -203,7 +241,7 @@ const Summary = () => {
           >
             <div className="flex items-center justify-between mb-4">
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                {isAcceptLoadingAndWaiting ? "Loading & Waiting Period Details" : "Loading Details"}
+                Loading Details
               </p>
               <Badge className="bg-amber-100 text-amber-700 border-amber-300 text-xs font-semibold">
                 Total Loading: {loadingDetails!.total_loading_percentage}%
@@ -213,56 +251,84 @@ const Summary = () => {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/40">
-                    <TableHead className="text-xs font-bold uppercase tracking-wide">
-                      Medical Condition
-                    </TableHead>
-                    <TableHead className="text-xs font-bold uppercase tracking-wide">
-                      Loading Percentage
-                    </TableHead>
-                    {isAcceptLoadingAndWaiting && (
-                      <TableHead className="text-xs font-bold uppercase tracking-wide">
-                        Waiting Period
-                      </TableHead>
-                    )}
-                    <TableHead className="text-xs font-bold uppercase tracking-wide">
-                      ICD Code
-                    </TableHead>
-                    <TableHead className="text-xs font-bold uppercase tracking-wide">
-                      ICD Description
-                    </TableHead>
+                    <TableHead className="text-xs font-bold uppercase tracking-wide">Medical Condition</TableHead>
+                    <TableHead className="text-xs font-bold uppercase tracking-wide">Loading Percentage</TableHead>
+                    <TableHead className="text-xs font-bold uppercase tracking-wide">ICD Code</TableHead>
+                    <TableHead className="text-xs font-bold uppercase tracking-wide">ICD Description</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {loadingDetails!.loading_conditions.map(
-                    (item: LoadingCondition, idx: number) => (
-                      <TableRow
-                        key={idx}
-                        className={idx % 2 === 0 ? "bg-card" : "bg-muted/20"}
-                      >
-                        <TableCell className="text-sm font-medium">
-                          {item.condition}
-                        </TableCell>
-                        <TableCell>
+                  {loadingDetails!.loading_conditions.map((item: LoadingCondition, idx: number) => (
+                    <TableRow key={idx} className={idx % 2 === 0 ? "bg-card" : "bg-muted/20"}>
+                      <TableCell className="text-sm font-medium">{item.condition}</TableCell>
+                      <TableCell>
+                        <Badge className="bg-amber-100 text-amber-700 border-amber-300 font-semibold text-xs">
+                          {item.loading_percentage}%
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-sm">{item.icd_category_code}</TableCell>
+                      <TableCell className="text-sm">{item.icd_description}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+        )}
+
+        {/* Merged Loading & Waiting Period Table — for Accept with loading and waiting period */}
+        {showMergedTable && (
+          <div
+            className="rounded-xl border border-border bg-card p-6 mb-6 shadow-sm animate-fade-in"
+            style={{ animationDelay: "0.25s", animationFillMode: "both" }}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Loading & Waiting Period Details
+              </p>
+              {loadingDetails?.applicable && (
+                <Badge className="bg-amber-100 text-amber-700 border-amber-300 text-xs font-semibold">
+                  Total Loading: {loadingDetails.total_loading_percentage}%
+                </Badge>
+              )}
+            </div>
+            <div className="overflow-x-auto -mx-2">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/40">
+                    <TableHead className="text-xs font-bold uppercase tracking-wide">Medical Condition</TableHead>
+                    <TableHead className="text-xs font-bold uppercase tracking-wide">Loading Percentage</TableHead>
+                    <TableHead className="text-xs font-bold uppercase tracking-wide">Waiting Period</TableHead>
+                    <TableHead className="text-xs font-bold uppercase tracking-wide">ICD Code</TableHead>
+                    <TableHead className="text-xs font-bold uppercase tracking-wide">ICD Description</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {mergedRows.map((item, idx) => (
+                    <TableRow key={idx} className={idx % 2 === 0 ? "bg-card" : "bg-muted/20"}>
+                      <TableCell className="text-sm font-medium">{item.condition}</TableCell>
+                      <TableCell>
+                        {item.loading_percentage !== undefined ? (
                           <Badge className="bg-amber-100 text-amber-700 border-amber-300 font-semibold text-xs">
                             {item.loading_percentage}%
                           </Badge>
-                        </TableCell>
-                        {isAcceptLoadingAndWaiting && (
-                          <TableCell>
-                            <Badge className="bg-primary/15 text-primary border-primary/30 font-semibold text-xs">
-                              3 Years
-                            </Badge>
-                          </TableCell>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
                         )}
-                        <TableCell className="text-sm">
-                          {item.icd_category_code}
-                        </TableCell>
-                        <TableCell className="text-sm">
-                          {item.icd_description}
-                        </TableCell>
-                      </TableRow>
-                    )
-                  )}
+                      </TableCell>
+                      <TableCell>
+                        {item.hasWaiting ? (
+                          <Badge className="bg-primary/15 text-primary border-primary/30 font-semibold text-xs">
+                            3 Years
+                          </Badge>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-sm">{item.icd_category_code}</TableCell>
+                      <TableCell className="text-sm">{item.icd_description}</TableCell>
+                    </TableRow>
+                  ))}
                 </TableBody>
               </Table>
             </div>
