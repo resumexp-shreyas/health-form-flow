@@ -522,7 +522,11 @@ const Index = () => {
         {/* Header */}
         <div className="mb-8 text-center">
           <div className="mb-3 inline-flex items-center justify-center">
-            <img src={uwBrainLogo} alt="UW Brain Logo" className="h-20 w-20 object-contain" />
+            <img
+              src={uwBrainLogo}
+              alt="UW Brain Logo"
+              className="h-20 w-20 object-contain rounded-full border-2 border-gray-200"
+            />
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">
             Health Insurance Proposal Form
