@@ -78,21 +78,19 @@ const UWReflexQuestions = () => {
     setAnswers((prev) => ({ ...prev, [seq]: value }));
   };
 
-  const allAnswered = questions.every(
+  const hasAnyAnswer = questions.some(
     (q) => answers[q.question_sequence_number]?.trim()
   );
 
   const handleSubmit = () => {
-    if (!allAnswered) {
-      toast.error("Please answer all questions before submitting.");
-      return;
-    }
 
-    const collectedAnswers = questions.map((q) => ({
-      question_sequence_number: q.question_sequence_number,
-      question_text: q.question_text,
-      answer: answers[q.question_sequence_number],
-    }));
+    const collectedAnswers = questions
+      .filter((q) => answers[q.question_sequence_number]?.trim())
+      .map((q) => ({
+        question_sequence_number: q.question_sequence_number,
+        question_text: q.question_text,
+        answer: answers[q.question_sequence_number],
+      }));
 
     setIsSubmitting(true);
     console.log("Submitting UW Reflex Answers:", collectedAnswers);
@@ -222,8 +220,11 @@ const UWReflexQuestions = () => {
             Underwriter Questions
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Please provide detailed answers to the following questions. {`${uwData.proposal_id} `}
+            This proposal will be referred to an underwriter for manual review.
           </p>
+          <div className="mt-3 mx-auto max-w-lg rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-xs leading-relaxed text-muted-foreground">
+            <span className="font-semibold text-primary">These questions are optional</span>, but providing detailed answers will help us process your proposal faster and more accurately.
+          </div>
         </div>
 
         <div className="space-y-4">
@@ -263,7 +264,7 @@ const UWReflexQuestions = () => {
         <div className="mt-8 flex flex-col items-center gap-3">
           <button
             onClick={handleSubmit}
-            disabled={!allAnswered || isSubmitting}
+            disabled={isSubmitting}
             className="inline-flex items-center gap-2 rounded-lg bg-primary px-10 py-3 text-sm font-semibold text-primary-foreground shadow-sm transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
