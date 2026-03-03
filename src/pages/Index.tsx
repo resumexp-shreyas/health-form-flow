@@ -135,6 +135,12 @@ const Index = () => {
       : "Answered Yes as we noted you are recovering from surgery."
     : null;
 
+  // Auto-answer Q3 (index 2, Medication) based on "I'm taking treatment or medicine" status
+  const isTakingTreatment = statusValues.some(s => s === "I'm taking treatment or medicine");
+  const autoAnswerNoteQ5 = isTakingTreatment
+    ? "Answered Yes as we noted from Q 3 that you are taking treatment or medicine"
+    : null;
+
   // Auto-select hospitalization type based on surgery status
   const autoHospitalizationType = (() => {
     const types: string[] = [];
@@ -149,8 +155,10 @@ const Index = () => {
     : hospitalization;
 
   // Effective value for Q2 (index 1): force Yes if surgery-related
+  // Effective value for Q3 (index 2): force Yes if taking treatment/medicine
   const getEffectiveValue = (index: number) => {
     if (index === 1 && isSurgeryRelated) return true;
+    if (index === 2 && isTakingTreatment) return true;
     return answers[index].value;
   };
 
@@ -621,8 +629,8 @@ const Index = () => {
               details={answers[i].details}
               onAnswer={(v) => updateAnswer(i, v)}
               onDetailsChange={(d) => updateDetails(i, d)}
-              disabled={i === 1 && isSurgeryRelated}
-              note={i === 1 ? autoAnswerNote : undefined}
+              disabled={(i === 1 && isSurgeryRelated) || (i === 2 && isTakingTreatment)}
+              note={i === 1 ? autoAnswerNote : i === 2 ? autoAnswerNoteQ5 : undefined}
               {...(i === 0 && {
                 customDetails: (
                   <MedicalHistoryDetails
