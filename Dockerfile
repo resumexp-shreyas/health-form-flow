@@ -6,16 +6,16 @@ WORKDIR /app
 
 # Copy package.json and package-lock.json
 COPY package.json ./
-COPY yarn.lock ./
+COPY package-lock.json ./
 
 # Install dependencies
-RUN yarn install --frozen-lockfile
+RUN npm install --frozen-lockfile
 
 # Copy the rest of the application code
 COPY . .
 
 # Build the React app
-RUN yarn build
+RUN npm run build
 
 # Stage 2: Serve the React application with Nginx
 FROM nginx:alpine
@@ -31,3 +31,4 @@ EXPOSE 80
 
 # Start Nginx
 CMD ["nginx", "-g", "daemon off;"]
+
