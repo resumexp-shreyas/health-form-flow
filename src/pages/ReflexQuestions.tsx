@@ -80,6 +80,7 @@ const ReflexQuestions = () => {
     fireAjax({
       url: getHost() + `proposal/SubmitAdditionalAnswers/`,
       method: "post",
+      onError: () => setIsSubmitting(false),
       body: {
         ...proposalObject,
         additional_answers: collectedAnswers,

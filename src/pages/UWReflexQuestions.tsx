@@ -98,6 +98,7 @@ const UWReflexQuestions = () => {
     fireAjax({
       url: getHost() + `proposal/postUWQn/`,
       method: "post",
+      onError: () => setIsSubmitting(false),
       body: { answers: collectedAnswers, proposal_id: uwData.proposal_id },
       callBack: (result: any) => {
         setIsSubmitting(false);

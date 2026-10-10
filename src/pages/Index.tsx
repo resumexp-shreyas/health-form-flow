@@ -12,6 +12,7 @@ import uwBrainLogo from "@/assets/UW_Brain_Logo.png";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import AmbiguousClarification, { type AmbiguousCondition } from "@/components/AmbiguousClarification";
+import RecordUpload, { type ExtractedPrefill } from "@/components/RecordUpload";
 import { fireAjax, getHost } from "../assets/Karma";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
@@ -215,6 +216,105 @@ const Index = () => {
   };
 
 
+  // Pre-fill the form from medical records read by the backend (Document AI + Gemini).
+  // Rules: never overwrite what the applicant already entered, never turn "no evidence" into "No",
+  // and force the ambiguity/discrepancy checks to run again on the new data.
+  const applyPrefill = (p: ExtractedPrefill, files: File[]) => {
+    const filesOfType = (type: string) =>
+      files.filter((f) => p.documents.some((d) => d.file_name === f.name && (d.document_type || "").toLowerCase() === type));
+
+    if (!age.trim() && p.age) setAge(p.age);
+    if (!gender && p.gender) setGender(p.gender);
+
+    setLifestyleAnswers((prev) => {
+      const next = [...prev];
+      const merge = (i: number, v: boolean | null) => {
+        if (v === true || (v === false && next[i].value === null)) next[i] = { ...next[i], value: v };
+      };
+      merge(0, p.tobacco.answer);
+      merge(1, p.alcohol.answer);
+      return next;
+    });
+    if (p.tobacco.forms.length > 0) {
+      setTobaccoForms((prev) => [...new Set([...prev, ...p.tobacco.forms])]);
+    }
+
+    if (p.medicalConditions.length > 0) {
+      setMedicalHistory((prev) => {
+        const chips = prev.condition.split("||").filter(Boolean);
+        const years = { ...prev.yearOfDiagnosis };
+        const status = { ...prev.currentStatus };
+        for (const c of p.medicalConditions) {
+          const existing = chips.find((x) => x.toLowerCase() === c.condition.toLowerCase());
+          const key = existing ?? c.condition;
+          if (!existing) chips.push(c.condition);
+          if (c.yearOfDiagnosis && !years[key]) years[key] = c.yearOfDiagnosis;
+          if (c.currentStatus && !status[key]) status[key] = c.currentStatus;
+        }
+        return { condition: chips.join("||"), yearOfDiagnosis: years, currentStatus: status };
+      });
+    }
+
+    const h = p.hospitalization;
+    if (h) {
+      const dischargeFiles = filesOfType("discharge summary");
+      setHospitalization((prev) => ({
+        ...prev,
+        hospitalizationType: [...new Set([...prev.hospitalizationType, ...h.types])],
+        reasons: [...new Set([...prev.reasons, ...h.reasons])],
+        reasonOther: prev.reasonOther || h.reasonOther,
+        yearsAgo: prev.yearsAgo || h.yearsAgo,
+        monthsAgo: prev.monthsAgo || h.monthsAgo,
+        outcome: prev.outcome || h.outcome,
+        outcomeOther: prev.outcomeOther || h.outcomeOther,
+        hasDischargeRecords: h.hasDischargeRecords ?? prev.hasDischargeRecords,
+        uploadedFiles: [
+          ...prev.uploadedFiles,
+          ...dischargeFiles.filter((f) => !prev.uploadedFiles.some((u) => u.name === f.name && u.size === f.size)),
+        ],
+      }));
+    }
+
+    if (p.disability.percentage !== null || p.disability.certificateProvided) {
+      const certFile = filesOfType("disability certificate")[0] ?? null;
+      setDisability((prev) => ({
+        percentage: prev.percentage || (p.disability.percentage !== null ? String(p.disability.percentage) : ""),
+        hasCertificate: p.disability.certificateProvided ? true : prev.hasCertificate,
+        certificateFile: prev.certificateFile ?? certFile,
+      }));
+    }
+
+    setAnswers((prev) => {
+      const next = [...prev];
+      const setYes = (i: number, details?: string) => {
+        next[i] = { value: true, details: details ?? next[i].details };
+      };
+      const setNoIfEmpty = (i: number) => {
+        if (next[i].value === null) next[i] = { value: false, details: "" };
+      };
+      if (p.medicalConditions.length > 0) setYes(0);
+      if (h) setYes(1);
+      if (p.q5Text) {
+        const cur = next[2].details.trim();
+        if (!cur) setYes(2, p.q5Text);
+        else if (!cur.includes(p.q5Text)) setYes(2, `${cur}
+${p.q5Text}`);
+        else setYes(2);
+      }
+      if (p.disability.answer === true) setYes(3);
+      else if (p.disability.answer === false) setNoIfEmpty(3);
+      if (p.pastInsurance.answer === true) setYes(4, p.pastInsurance.details ?? undefined);
+      else if (p.pastInsurance.answer === false) setNoIfEmpty(4);
+      return next;
+    });
+
+    setAmbiguityClear(false);
+    setDiscrepancyClear(false);
+    setAmbiguousConditions([]);
+    setDiscrepancies([]);
+    toast.success("Form pre-filled from your records. Please review and edit before submitting.");
+  };
+
   /**
    * deriveUwObject(response)
    */
@@ -323,6 +423,7 @@ const Index = () => {
       url: getHost() + `proposal/submit/`,
       method: "post",
       body: proposalObj,
+      onError: () => setIsSubmitting(false),
       callBack: (result) => {
         setIsSubmitting(false);
         console.log("Raw response:", result.data.response);
@@ -366,6 +467,7 @@ const Index = () => {
       url: getHost() + `proposal/getclarity/`,
       method: "post",
       body: proposalObj,
+      onError: () => setIsSubmitting(false),
       callBack: (result) => {
         console.log("Raw response:", result.data.response);
         const uwobject = result.data.response;
@@ -394,6 +496,7 @@ const Index = () => {
       url: getHost() + `proposal/findambiguity/`,
       method: "post",
       body: proposalObj,
+      onError: () => setIsSubmitting(false),
       callBack: (result) => {
         console.log("Raw response:", result.data.response);
         const uwobject = result.data.response;
@@ -553,6 +656,9 @@ const Index = () => {
         <div className="mb-6">
           <ProgressBar answered={answered} total={totalQuestions} />
         </div>
+
+        {/* Medical records upload (Document AI) */}
+        <RecordUpload onPrefill={applyPrefill} />
 
         {/* Answer No for all */}
         <div className="mb-4 flex items-center gap-3 rounded-lg border border-border bg-card px-5 py-3">

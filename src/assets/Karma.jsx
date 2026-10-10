@@ -1,4 +1,5 @@
 import axios from "axios";
+import { toast } from "sonner";
 //import { refresh_token, logout } from "../redux/actions/auth";//refresh_token, logout functions are yetto be created
 
 
@@ -6,17 +7,23 @@ import Cookies from "js-cookie";
 //axios.defaults.withCredentials=true
 
 export const getHost = () => {
-  let hosturl;
-  if (window.location.hostname.includes("localhost")) {
-    //console.log("host: localhost");
-    hosturl = `http://localhost:8000/`;
-  } else {
-    //console.log("host: resumexp");
-    hosturl = `https://uwbrain-216941414590.asia-south1.run.app/`//"http://localhost:8000/";
-  }
-  //hosturl = `https://www.resumexp.com/`;
-  //hosturl = `https://resumexp-api-216941414590.asia-south1.run.app/`;
-  return hosturl;
+  // 1) Explicit override, e.g. VITE_API_URL=http://localhost:8000/ in .env.local
+  const override = import.meta.env.VITE_API_URL;
+  if (override) return override.endsWith("/") ? override : override + "/";
+
+  // 2) Dev machine or local network (localhost, 127.0.0.1, 10.x, 172.16-31.x, 192.168.x):
+  //    talk to the Django dev server on port 8000 of the same host.
+  const host = window.location.hostname;
+  const isLocal =
+    host === "localhost" ||
+    host === "127.0.0.1" ||
+    /^10\./.test(host) ||
+    /^192\.168\./.test(host) ||
+    /^172\.(1[6-9]|2\d|3[01])\./.test(host);
+  if (isLocal) return `http://${host}:8000/`;
+
+  // 3) Deployed site
+  return `https://uwbrain-216941414590.asia-south1.run.app/`;
 };
 
 
@@ -90,6 +97,15 @@ export const fireAjax = async (context) => {
     callBack(result);
   } catch (error) {
     console.log("error=", error);
+    // Surface the failure instead of leaving the page stuck on "Processing..."
+    const status = error?.response?.status;
+    const detail = error?.response?.data?.error;
+    toast.error(
+      status === 429
+        ? "The AI service is busy. Please wait a minute and try again."
+        : detail || "Something went wrong. Please try again."
+    );
+    if (context.onError) context.onError(error);
   }
 };
 
